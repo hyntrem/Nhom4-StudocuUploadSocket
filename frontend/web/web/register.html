@@ -1,0 +1,40 @@
+<!-- Trang đăng ký: form đăng ký người dùng mới -->
+ <!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Đăng ký | Studocu Việt Nam</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+
+<body>
+  <header class="header">
+    <div class="logo">
+      <img src="assets/logo.png" alt="Studocu Logo">
+      <span>Studocu</span>
+    </div>
+  </header>
+
+  <main class="auth-container">
+    <div class="auth-box">
+      <h2>Tạo tài khoản</h2>
+      <form id="registerForm">
+        <input type="text" id="name" placeholder="Họ và tên" required>
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="password" id="password" placeholder="Mật khẩu" required>
+        <input type="password" id="confirmPassword" placeholder="Nhập lại mật khẩu" required>
+        <button type="submit" id="registerBtn">Đăng ký</button>
+        <p class="msg"></p>
+      </form>
+      <p class="switch">Đã có tài khoản? <a href="login.html">Đăng nhập</a></p>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>© 2025 Studocu Việt Nam. All rights reserved.</p>
+  </footer>
+
+  <script src="js/auth.js"></script>
+</body>
+</html>
