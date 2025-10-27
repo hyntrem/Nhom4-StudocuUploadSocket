@@ -332,3 +332,117 @@ body {
   color: #00cc66;
   font-weight: 600;
 }
+/* ============ TRANG UPLOAD ============ */
+.upload-container {
+  background: #ffffff;
+  padding: 35px 60px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  margin: 30px 40px;
+}
+
+.upload-container h2 {
+  color: #004aad;
+  margin-bottom: 20px;
+}
+
+/* Vùng drag & drop */
+.drop-zone {
+  border: 2px dashed #004aad;
+  border-radius: 10px;
+  padding: 50px;
+  text-align: center;
+  background-color: #fdfdfd;
+  transition: all 0.3s ease;
+  margin-bottom: 25px;
+}
+
+.drop-zone.dragover {
+  background-color: #e9f2ff;
+  border-color: #007bff;
+}
+
+.drop-zone p {
+  font-size: 16px;
+  color: #444;
+}
+
+.browse {
+  color: #007bff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Metadata form */
+.meta-section {
+  margin-top: 25px;
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+}
+
+.meta-section label {
+  display: block;
+  margin-top: 10px;
+  font-weight: 600;
+}
+
+.meta-section input,
+.meta-section textarea,
+.meta-section select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+/* Nút điều khiển upload */
+.upload-controls {
+  margin-top: 25px;
+  display: flex;
+  gap: 15px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  color: white;
+}
+
+.start { background-color: #004aad; }
+.pause { background-color: #ff9800; }
+.resume { background-color: #00a65a; }
+.stop { background-color: #d9534f; }
+
+.btn:disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
+}
+
+/* Thanh tiến trình */
+.progress-bar {
+  width: 100%;
+  background-color: #eee;
+  border-radius: 10px;
+  margin-top: 25px;
+  height: 18px;
+  overflow: hidden;
+}
+
+.progress {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #007bff, #00b3ff);
+  transition: width 0.3s ease;
+}
+
+.status-text {
+  margin-top: 10px;
+  font-weight: 500;
+  color: #333;
+}

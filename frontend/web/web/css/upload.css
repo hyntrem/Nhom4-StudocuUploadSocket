@@ -1,1 +1,257 @@
 /* Trang upload: style drag & drop và progress bar */
+/* ====== Upload Page ====== */
+.upload-container {
+  padding: 30px 80px;
+  background-color: #f7f8fa;
+  min-height: calc(100vh - 140px);
+}
+
+.upload-container h2 {
+  color: #004aad;
+  margin-bottom: 20px;
+}
+
+/* Drag & Drop zone */
+.drop-zone {
+  border: 2px dashed #004aad;
+  border-radius: 12px;
+  background: #fff;
+  padding: 40px;
+  text-align: center;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.drop-zone.dragover {
+  background: #e9f2ff;
+  border-color: #007bff;
+}
+
+.drop-zone p {
+  font-size: 16px;
+}
+
+.browse {
+  color: #007bff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Metadata form */
+.meta-section {
+  margin-top: 25px;
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+}
+
+.meta-section label {
+  display: block;
+  margin-top: 10px;
+  font-weight: 600;
+}
+
+.meta-section input,
+.meta-section textarea,
+.meta-section select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+/* Upload controls */
+.upload-controls {
+  margin-top: 25px;
+  display: flex;
+  gap: 15px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  color: white;
+}
+
+.start { background-color: #004aad; }
+.pause { background-color: #ff9800; }
+.resume { background-color: #00a65a; }
+.stop { background-color: #d9534f; }
+
+.btn:disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
+}
+
+/* Progress bar */
+.progress-bar {
+  width: 100%;
+  background-color: #eee;
+  border-radius: 10px;
+  margin-top: 25px;
+  height: 18px;
+  overflow: hidden;
+}
+
+.progress {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #007bff, #00b3ff);
+  transition: width 0.3s ease;
+}
+
+.status-text {
+  margin-top: 10px;
+  font-weight: 500;
+  color: #333;
+}
+/* ===================== TRANG UPLOAD ===================== */
+.upload-container {
+  background: #ffffff;
+  padding: 40px 60px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  margin: 40px auto;
+  max-width: 900px; /* ✅ Giới hạn chiều rộng, giúp bố cục gọn giữa */
+}
+
+.upload-container h2 {
+  color: #004aad;
+  margin-bottom: 25px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 22px;
+}
+
+/* ========== KHU VỰC DRAG & DROP ========== */
+.drop-zone {
+  border: 2px dashed #004aad;
+  border-radius: 12px;
+  padding: 60px;
+  text-align: center;
+  color: #444;
+  font-size: 16px;
+  background-color: #fafbff;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.drop-zone.dragover {
+  background-color: #e9f2ff;
+  border-color: #007bff;
+}
+
+.drop-zone p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.browse {
+  color: #007bff;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ========== FORM THÔNG TIN METADATA ========== */
+.meta-section {
+  margin-top: 30px;
+  background: #fff;
+  padding: 25px 30px;
+  border-radius: 10px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+}
+
+.meta-section label {
+  display: block;
+  margin-top: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.meta-section input,
+.meta-section textarea,
+.meta-section select {
+  width: 100%;
+  padding: 10px;
+  margin-top: 6px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+  transition: border-color 0.2s ease;
+}
+
+.meta-section input:focus,
+.meta-section textarea:focus,
+.meta-section select:focus {
+  border-color: #004aad;
+  outline: none;
+  box-shadow: 0 0 3px rgba(0,74,173,0.3);
+}
+
+/* ========== NÚT ĐIỀU KHIỂN UPLOAD ========== */
+.upload-controls {
+  margin-top: 30px;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 10px 22px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  color: white;
+  font-size: 15px;
+  transition: all 0.25s ease;
+}
+
+.start { background-color: #004aad; }
+.pause { background-color: #ff9800; }
+.resume { background-color: #00a65a; }
+.stop { background-color: #d9534f; }
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+}
+
+.btn:disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
+}
+
+/* ========== THANH TIẾN TRÌNH UPLOAD ========== */
+.progress-bar {
+  width: 100%;
+  background-color: #eee;
+  border-radius: 10px;
+  margin-top: 30px;
+  height: 18px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.progress {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #007bff, #00b3ff);
+  transition: width 0.3s ease;
+}
+
+.status-text {
+  margin-top: 15px;
+  font-weight: 500;
+  color: #333;
+  text-align: center;
+  font-size: 15px;
+}

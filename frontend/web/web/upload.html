@@ -1,1 +1,88 @@
 <!-- Trang upload: drag & drop, Start/Pause/Resume/Stop upload -->
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Upload tài liệu | Studocu Việt Nam</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/upload.css">
+</head>
+
+<body>
+  <!-- HEADER -->
+  <header class="header">
+    <div class="logo">
+      <img src="assets/logo.png" alt="Studocu Logo">
+      <span>Studocu</span>
+    </div>
+    <div class="user-actions">
+      <button id="logoutBtn">Đăng xuất</button>
+      <img src="assets/avatar.jpg" class="avatar" id="userAvatar" alt="Avatar">
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <ul>
+      <li><a href="index.html">🏠 Trang chủ</a></li>
+      <li><a href="upload.html" class="active">➕ Tải tài liệu</a></li>
+      <li><a href="myfiles.html">📂 Kho lưu trữ của tôi</a></li>
+      <li><a href="#">🕒 Nội dung gần đây</a></li>
+      <li><a href="#">🗑️ Thùng rác</a></li>
+      <li><a href="#">⭐ Bộ nhớ</a></li>
+      <li><a href="#">⚙️ Cài đặt</a></li>
+    </ul>
+  </aside>
+
+  <!-- CONTENT -->
+  <main class="content">
+    <section class="upload-container">
+      <h2>📤 Upload tài liệu của bạn</h2>
+
+      <!-- Drag & Drop zone -->
+      <div id="dropZone" class="drop-zone">
+        <p>Kéo thả tệp vào đây hoặc <span id="browseFile" class="browse">chọn tệp</span></p>
+        <input type="file" id="fileInput" hidden>
+      </div>
+
+      <!-- Metadata form -->
+      <div class="meta-section">
+        <label for="visibility">Chế độ hiển thị:</label>
+        <select id="visibility">
+          <option value="public">Công khai</option>
+          <option value="private">Riêng tư</option>
+        </select>
+
+        <label for="tags">Thẻ (tag):</label>
+        <input type="text" id="tags" placeholder="Nhập thẻ, cách nhau bằng dấu phẩy">
+
+        <label for="description">Mô tả:</label>
+        <textarea id="description" rows="3" placeholder="Thêm mô tả ngắn cho tài liệu..."></textarea>
+      </div>
+
+      <!-- Upload controls -->
+      <div class="upload-controls">
+        <button id="startBtn" class="btn start">Bắt đầu</button>
+        <button id="pauseBtn" class="btn pause" disabled>Tạm dừng</button>
+        <button id="resumeBtn" class="btn resume" disabled>Tiếp tục</button>
+        <button id="stopBtn" class="btn stop" disabled>Dừng</button>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="progress-bar">
+        <div id="progress" class="progress"></div>
+      </div>
+      <p id="statusText" class="status-text"></p>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <p>Studocu không liên kết hoặc được xác nhận bởi bất kỳ trường học, cao đẳng hoặc đại học nào.</p>
+    <p>Copyright © 2025 StudeerSnel B.V., Keizersgracht 424-sous, 1016 GC Amsterdam</p>
+    <p>KVK: 56829787, BTW: NL852321363B01</p>
+  </footer>
+
+  <script src="js/upload.js"></script>
+</body>
+</html>
