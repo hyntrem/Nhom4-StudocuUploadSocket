@@ -1,257 +1,178 @@
 /* Trang upload: style drag & drop và progress bar */
 /* ====== Upload Page ====== */
-.upload-container {
-  padding: 30px 80px;
-  background-color: #f7f8fa;
-  min-height: calc(100vh - 140px);
-}
-
-.upload-container h2 {
-  color: #004aad;
-  margin-bottom: 20px;
-}
-
-/* Drag & Drop zone */
-.drop-zone {
-  border: 2px dashed #004aad;
-  border-radius: 12px;
-  background: #fff;
-  padding: 40px;
-  text-align: center;
-  color: #555;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.drop-zone.dragover {
-  background: #e9f2ff;
-  border-color: #007bff;
-}
-
-.drop-zone p {
-  font-size: 16px;
-}
-
-.browse {
-  color: #007bff;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-/* Metadata form */
-.meta-section {
-  margin-top: 25px;
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.05);
-}
-
-.meta-section label {
-  display: block;
-  margin-top: 10px;
-  font-weight: 600;
-}
-
-.meta-section input,
-.meta-section textarea,
-.meta-section select {
-  width: 100%;
-  padding: 8px;
-  margin-top: 5px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-}
-
-/* Upload controls */
-.upload-controls {
-  margin-top: 25px;
-  display: flex;
-  gap: 15px;
-}
-
-.btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  color: white;
-}
-
-.start { background-color: #004aad; }
-.pause { background-color: #ff9800; }
-.resume { background-color: #00a65a; }
-.stop { background-color: #d9534f; }
-
-.btn:disabled {
-  background-color: #aaa;
-  cursor: not-allowed;
-}
-
-/* Progress bar */
-.progress-bar {
-  width: 100%;
-  background-color: #eee;
-  border-radius: 10px;
-  margin-top: 25px;
-  height: 18px;
-  overflow: hidden;
-}
-
-.progress {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #007bff, #00b3ff);
-  transition: width 0.3s ease;
-}
-
-.status-text {
-  margin-top: 10px;
-  font-weight: 500;
-  color: #333;
-}
-/* ===================== TRANG UPLOAD ===================== */
+/* ========================= */
+/* ---------- BỐ CỤC TỔNG ---------- */
 .upload-container {
   background: #ffffff;
-  padding: 40px 60px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-  margin: 40px auto;
-  max-width: 900px; /* ✅ Giới hạn chiều rộng, giúp bố cục gọn giữa */
+  margin: 50px auto;
+  padding: 50px 70px;
+  border-radius: 16px;
+  max-width: 920px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+.upload-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
 }
 
 .upload-container h2 {
-  color: #004aad;
-  margin-bottom: 25px;
   text-align: center;
+  color: #004aad;
+  font-size: 26px;
   font-weight: 700;
-  font-size: 22px;
+  margin-bottom: 35px;
 }
 
-/* ========== KHU VỰC DRAG & DROP ========== */
+/* ---------- KHU VỰC DRAG & DROP ---------- */
 .drop-zone {
-  border: 2px dashed #004aad;
-  border-radius: 12px;
-  padding: 60px;
+  border: 2px dashed #7da8ff;
+  background: linear-gradient(180deg, #fafcff 0%, #f2f7ff 100%);
+  border-radius: 14px;
+  padding: 60px 30px;
   text-align: center;
-  color: #444;
-  font-size: 16px;
-  background-color: #fafbff;
   transition: all 0.3s ease;
   cursor: pointer;
+  position: relative;
+}
+
+.drop-zone::before {
+  content: "📂";
+  font-size: 42px;
+  display: block;
+  margin-bottom: 15px;
+  opacity: 0.7;
+}
+
+.drop-zone:hover {
+  background-color: #eef5ff;
+  transform: scale(1.02);
 }
 
 .drop-zone.dragover {
-  background-color: #e9f2ff;
-  border-color: #007bff;
+  background-color: #d9e8ff;
+  border-color: #004aad;
 }
 
 .drop-zone p {
+  font-size: 17px;
+  color: #333;
   margin: 0;
-  line-height: 1.6;
 }
 
 .browse {
-  color: #007bff;
+  color: #004aad;
   font-weight: 600;
   text-decoration: underline;
   cursor: pointer;
 }
 
-/* ========== FORM THÔNG TIN METADATA ========== */
+/* ---------- FORM THÔNG TIN METADATA ---------- */
 .meta-section {
-  margin-top: 30px;
-  background: #fff;
+  margin-top: 40px;
   padding: 25px 30px;
-  border-radius: 10px;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+  background: #f9fbff;
+  border: 1px solid #dde6ff;
+  border-radius: 12px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.04);
 }
 
 .meta-section label {
-  display: block;
-  margin-top: 15px;
   font-weight: 600;
-  color: #333;
+  color: #004aad;
+  display: block;
+  margin-top: 12px;
 }
 
 .meta-section input,
 .meta-section textarea,
 .meta-section select {
   width: 100%;
+  border: 1px solid #c9d7f3;
+  border-radius: 8px;
   padding: 10px;
   margin-top: 6px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
   font-size: 15px;
-  transition: border-color 0.2s ease;
+  background-color: #fff;
+  transition: all 0.2s ease;
 }
 
 .meta-section input:focus,
 .meta-section textarea:focus,
 .meta-section select:focus {
   border-color: #004aad;
+  box-shadow: 0 0 5px rgba(0, 74, 173, 0.25);
   outline: none;
-  box-shadow: 0 0 3px rgba(0,74,173,0.3);
 }
 
-/* ========== NÚT ĐIỀU KHIỂN UPLOAD ========== */
+/* ---------- NÚT ĐIỀU KHIỂN UPLOAD ---------- */
 .upload-controls {
   margin-top: 30px;
   display: flex;
   justify-content: center;
-  gap: 20px;
   flex-wrap: wrap;
+  gap: 20px;
 }
 
 .btn {
-  padding: 10px 22px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  color: white;
+  padding: 12px 28px;
   font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
   transition: all 0.25s ease;
 }
 
-.start { background-color: #004aad; }
-.pause { background-color: #ff9800; }
-.resume { background-color: #00a65a; }
-.stop { background-color: #d9534f; }
+/* Màu gradient cho từng nút */
+.start {
+  background: linear-gradient(90deg, #004aad, #006cff);
+}
+.pause {
+  background: linear-gradient(90deg, #ff9800, #ffb84d);
+}
+.resume {
+  background: linear-gradient(90deg, #00a65a, #4cd964);
+}
+.stop {
+  background: linear-gradient(90deg, #d9534f, #f66c6a);
+}
 
 .btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .btn:disabled {
-  background-color: #aaa;
+  background-color: #bbb;
   cursor: not-allowed;
 }
 
-/* ========== THANH TIẾN TRÌNH UPLOAD ========== */
+/* ---------- THANH TIẾN TRÌNH UPLOAD ---------- */
 .progress-bar {
-  width: 100%;
-  background-color: #eee;
-  border-radius: 10px;
-  margin-top: 30px;
+  margin-top: 40px;
   height: 18px;
+  border-radius: 10px;
+  background-color: #edf0f7;
   overflow: hidden;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .progress {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, #007bff, #00b3ff);
-  transition: width 0.3s ease;
+  background: linear-gradient(90deg, #00b3ff, #007bff);
+  transition: width 0.4s ease;
+  border-radius: 10px 0 0 10px;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .status-text {
-  margin-top: 15px;
-  font-weight: 500;
-  color: #333;
   text-align: center;
+  margin-top: 12px;
   font-size: 15px;
+  color: #333;
+  font-weight: 500;
 }
