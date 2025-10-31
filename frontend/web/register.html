@@ -72,11 +72,14 @@
   </div>
 
   <!-- SCRIPT -->
-  <script>
+<script>
     const form = document.getElementById("registerForm");
     const popup = document.getElementById("popupBox");
     const popupText = document.getElementById("popupText");
     const msg = document.getElementById("registerMsg");
+    
+    // ĐỊA CHỈ API BACKEND
+    const API_URL = "http://127.0.0.1:5000";
 
     form.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -84,28 +87,64 @@
       const name = document.getElementById("name").value.trim();
       const email = document.getElementById("email").value.trim();
       const pass = document.getElementById("password").value;
-      const confirm = document.getElementById("confirmPassword").value;
+      const confirmPass = document.getElementById("confirmPassword").value;
 
-      if (pass !== confirm) {
+      if (pass !== confirmPass) {
         msg.textContent = "❌ Mật khẩu không khớp.";
+        msg.style.color = "red";
+        return;
+      }
+
+      if (!name || !email || !pass) {
+        msg.textContent = "⚠️ Vui lòng nhập đầy đủ thông tin.";
         msg.style.color = "red";
         return;
       }
 
       popup.classList.remove("hidden");
       popupText.textContent = "Đang xử lý...";
+      msg.textContent = "";
 
-      // Giả lập gửi dữ liệu đăng ký
-      setTimeout(() => {
-        popupText.textContent = "✅ Đăng ký thành công!";
-        msg.textContent = "Tài khoản của bạn đã được tạo.";
-        msg.style.color = "green";
+      // GỌI API ĐĂNG KÝ
+      fetch(`${API_URL}/api/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: name,
+          email: email,
+          password: pass
+        }),
+      })
+      .then(response => response.json().then(data => ({ status: response.status, body: data })))
+      .then(res => {
+        if (res.status === 201) { // 201 Created
+          popupText.textContent = "✅ Đăng ký thành công!";
+          msg.textContent = res.body.message;
+          msg.style.color = "green";
 
-        setTimeout(() => {
-          popup.classList.add("hidden");
-          window.location.href = "login.html"; // chuyển sang trang đăng nhập
-        }, 1500);
-      }, 2000);
+          setTimeout(() => {
+            popup.classList.add("hidden");
+            window.location.href = "login.html"; // Chuyển sang trang đăng nhập
+          }, 1500);
+        } else {
+          // Xử lý lỗi (vd: 409 Conflict, 400 Bad Request)
+          popupText.textContent = "❌ Đăng ký thất bại!";
+          msg.textContent = `Lỗi: ${res.body.message}`;
+          msg.style.color = "red";
+          setTimeout(() => {
+            popup.classList.add("hidden");
+          }, 2000);
+        }
+      })
+      .catch(error => {
+        console.error("Lỗi:", error);
+        popupText.textContent = "❌ Lỗi kết nối!";
+        msg.textContent = "Không thể kết nối tới server.";
+        msg.style.color = "red";
+        setTimeout(() => popup.classList.add("hidden"), 2000);
+      });
     });
   </script>
 </body>

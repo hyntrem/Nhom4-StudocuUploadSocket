@@ -71,6 +71,9 @@
     const popup = document.getElementById("popupBox");
     const popupText = document.getElementById("popupText");
     const msg = document.getElementById("loginMsg");
+    
+    // ĐỊA CHỈ API BACKEND  
+    const API_URL = "http://127.0.0.1:5000";
 
     form.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -85,28 +88,52 @@
 
       popup.classList.remove("hidden");
       popupText.textContent = "Đang xác thực...";
+      msg.textContent = "";
 
-      // Giả lập xử lý đăng nhập
-      setTimeout(() => {
-        if (email === "admin@studocu.vn" && password === "123456") {
+      // GỌI API ĐĂNG NHẬP
+      fetch(`${API_URL}/api/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password
+        }),
+      })
+      .then(response => response.json().then(data => ({ status: response.status, body: data })))
+      .then(res => {
+        if (res.status === 200) { // 200 OK
           popupText.textContent = "✅ Đăng nhập thành công!";
-          msg.textContent = "Chào mừng trở lại, Admin!";
+          msg.textContent = `Chào mừng, ${res.body.user.name}!`;
           msg.style.color = "green";
+
+          // LƯU TOKEN VÀO LOCALSTORAGE
+          localStorage.setItem("jwtToken", res.body.token);
+          localStorage.setItem("userName", res.body.user.name);
 
           setTimeout(() => {
             popup.classList.add("hidden");
-            window.location.href = "index.html"; // chuyển về trang chủ
+            window.location.href = "index.html"; // Chuyển về trang chủ
           }, 1500);
         } else {
+          // Xử lý lỗi (vd: 401, 404)
           popupText.textContent = "❌ Sai thông tin đăng nhập!";
-          msg.textContent = "Email hoặc mật khẩu không đúng.";
+          msg.textContent = res.body.message;
           msg.style.color = "red";
 
           setTimeout(() => {
             popup.classList.add("hidden");
           }, 2000);
         }
-      }, 1800);
+      })
+      .catch(error => {
+        console.error("Lỗi:", error);
+        popupText.textContent = "❌ Lỗi kết nối!";
+        msg.textContent = "Không thể kết nối tới server.";
+        msg.style.color = "red";
+        setTimeout(() => popup.classList.add("hidden"), 2000);
+      });
     });
   </script>
 </body>
