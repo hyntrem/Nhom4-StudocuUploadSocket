@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+
+<html lang="vi">
+
+<head>
+
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Kho lưu trữ | Studocu Việt Nam</title>
+
+  <link rel="stylesheet" href="css/style.css" />
+
+  <link rel="stylesheet" href="css/documents.css" />
+
+</head>
+
+
+
+<body>
+
+  <header class="header">
+
+    <div class="logo">
+
+      <img src="assets/logo.jpg" alt="Studocu Logo">
+
+    </div>
+
+    <div class="user-actions">
+
+      <button id="loginBtn" type="button" onclick="window.location.href='login.html'">Đăng nhập</button>
+
+      <button id="registerBtn" type="button" onclick="window.location.href='register.html'">Đăng ký</button>
+
+      <img src="assets/avatar.jpg" alt="Avatar" class="avatar hidden" id="userAvatar">
+
+    </div>
+
+  </header>
+
+
+
+  <aside class="sidebar">
+
+    <h3>Tài khoản</h3>
+
+    <a href="upload.html" class="btn-new">+ Mới</a>
+
+    <ul>
+
+      <li><a href="index.html">🏠 Trang chủ</a></li>
+
+      <li><a href="documents.html" class="active">📁 Kho lưu trữ của tôi</a></li>
+
+      <li><a href="#">🕓 Nội dung gần đây</a></li>
+
+      <li><a href="#">🗑️ Thùng rác</a></li>
+
+      <li><a href="#">⭐ Bộ nhớ</a></li>
+
+    </ul>
+
+    <hr>
+
+    <ul>
+
+      <li><a href="#">⚙️ Cài đặt</a></li>
+
+    </ul>
+
+  </aside>
+
+
+
+  <main class="content">
+
+    <section class="my-files-section">
+
+      <h2>📁 Kho lưu trữ của tôi</h2>
+
+      <p>Quản lý tất cả tài liệu bạn đã tải lên.</p>
+
+      
+
+      <div class="doc-grid" id="file-list-container">
+
+        <p id="loading-text">Đang tải tài liệu của bạn...</p>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+
+  <footer class="footer">
+
+    <div class="footer-links" style="text-align:center;">
+
+      <a href="#">Giới thiệu</a> | <a href="#">Liên hệ</a> | <a href="#">Điều khoản</a> | <a href="#">Chính sách bảo mật</a>
+
+    </div>
+
+    <div class="footer-info">
+
+      <p>Studocu không liên kết hoặc được xác nhận bởi bất kỳ trường học, cao đẳng hoặc đại học nào.</p>
+
+      <p>Copyright © 2025 StudeerSnel B.V., Keizersgracht 424-sous, 1016 GC Amsterdam</p>
+
+    </div>
+
+  </footer>
+
+
+
+  <div id="edit-modal-overlay" class="modal-overlay hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+
+    <div class="modal-box">
+
+      <div class="modal-header">
+        <h3 id="edit-modal-title">Chỉnh sửa thông tin tài liệu</h3>
+        <button id="modal-close-btn" class="modal-close-btn" type="button">&times;</button>
+      </div>
+
+      <form id="edit-form" class="modal-body">
+
+        <input type="hidden" id="edit-id" value="">
+
+        
+
+        <label for="edit-filename">Tên file:</label>
+
+        <input type="text" id="edit-filename" disabled>
+
+        
+
+        <label for="edit-description">Mô tả:</label>
+
+        <textarea id="edit-description" rows="4"></textarea>
+
+        
+
+        <label for="edit-visibility">Trạng thái:</label>
+
+        <select id="edit-visibility">
+
+          <option value="private">Riêng tư</option>
+
+          <option value="public">Công khai</option>
+
+        </select>
+
+        
+
+        <label for="edit-tags">Thẻ (cách nhau bằng dấu phẩy):</label>
+
+        <input type="text" id="edit-tags" placeholder="ví dụ: c++, mang, python">
+
+      </form>
+
+      <div class="modal-footer">
+        <button id="modal-cancel-btn" class="btn-modal-cancel" type="button">Hủy</button>
+        <button id="modal-save-btn" class="btn-modal-save" type="button">Lưu thay đổi</button>
+      </div>
+
+    </div>
+
+  </div>
+
+
+
+  <script src="js/documents.js"></script>
+
+</body>
+
+</html>
