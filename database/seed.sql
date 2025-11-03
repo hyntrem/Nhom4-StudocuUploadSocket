@@ -12,7 +12,7 @@ INSERT INTO users (name, email, password_hash, role, status)
 VALUES
 ('Thanh Tâm', 'tam@example.com', '123456', 'user', 'active'),
 ('Huyền Trâm', 'tram@example.com', '123456', 'user', 'active'),
-('Văn Nguyên', 'vnguyen@example.com', '123456', 'user', 'active'),
+('Vũ Nguyên', 'vnguyen@example.com', '123456', 'user', 'active'),
 ('Văn Long', 'long@example.com', '123456', 'user', 'inactive');
 ('Trung Nguyên','tnguyen@example.com', '123456', 'user', 'inactive');
 
@@ -22,7 +22,7 @@ VALUES
 ('Lập trình mạng'),
 ('Phân tích hệ thống'),
 ('Python'),
-('Kỹ thuật phần mềm');
+('Công nghệ phần mềm');
 
 INSERT INTO documents (filename, file_path, user_id, description, visibility, status)
 VALUES
@@ -38,4 +38,4 @@ VALUES
 (3, 1), -- Cơ sở dữ liệu
 (4, 4); -- Python
 
-SELECT '✅ Dữ liệu mẫu đã được thêm thành công!' AS message;
+SELECT 'Dữ liệu mẫu đã được thêm thành công!' AS message;
