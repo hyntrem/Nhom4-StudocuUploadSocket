@@ -1,66 +1,93 @@
+"""
+BackendClient - Thông báo cho Flask API khi upload hoàn tất qua socket.
+"""
+
 import os
-import requests
 import threading
 import time
 
-# Sửa URL: Trỏ đến API 'documents' của app.py
-BACKEND_URL = os.environ.get('BACKEND_URL', 'http://127.0.0.1:5000/api/documents')
-_TIMEOUT = 5 # Tăng thời gian chờ lên 5 giây
+try:
+    import requests
+except ImportError:
+    raise ImportError("⚠️ Thiếu thư viện 'requests'. Cài đặt bằng: pip install requests")
 
-def safe_post(url, payload, headers):
+# =============================================
+# ⚙️ Cấu hình chung
+# =============================================
+BACKEND_URL = os.environ.get('BACKEND_URL', 'http://127.0.0.1:5000/api/documents')
+_TIMEOUT = 5  # Thời gian chờ request (giây)
+
+
+# =============================================
+# 🧩 Hàm tiện ích
+# =============================================
+def safe_post(url: str, payload: dict, headers: dict):
     """
-    Hàm helper: Thực hiện POST request với payload và headers (chứa token).
+    Thực hiện POST request an toàn, có xử lý lỗi.
     """
     try:
-        # Gửi dữ liệu JSON, đính kèm headers
         response = requests.post(url, json=payload, headers=headers, timeout=_TIMEOUT)
-        if response.status_code == 201: # 201 Created
-            print(f"BackendClient: Báo cáo hoàn thành cho {payload.get('filename')} thành công!")
-        else:
-            print(f"BackendClient: Lỗi khi báo cáo. Status: {response.status_code}, Body: {response.text}")
-    except Exception as e:
-        print(f"BackendClient: Không thể kết nối API Backend. Lỗi: {e}")
 
+        if response.status_code == 201:
+            print(f"[BackendClient] ✅ Báo cáo hoàn tất: {payload.get('filename')}")
+        else:
+            print(
+                f"[BackendClient] ⚠️ Báo cáo thất bại ({response.status_code}) "
+                f"- {response.text[:200]}"
+            )
+
+    except requests.exceptions.Timeout:
+        print("[BackendClient] ⏱️ Hết thời gian chờ phản hồi từ Backend.")
+    except requests.exceptions.ConnectionError:
+        print("[BackendClient] 🚫 Không thể kết nối tới Backend API.")
+    except Exception as e:
+        print(f"[BackendClient] ❌ Lỗi không xác định khi POST: {e}")
+
+
+# =============================================
+# 🚀 Lớp BackendClient
+# =============================================
 class BackendClient:
     """
-    Lớp này chỉ gọi API Backend 1 LẦN DUY NHẤT khi upload hoàn tất.
+    Gửi thông báo cho API Flask sau khi upload hoàn tất.
+    Dùng để đồng bộ metadata (tên file, mô tả, tag, chế độ hiển thị, v.v.)
     """
-    def __init__(self, url=None):
+
+    def __init__(self, url: str = None):
         self.url = url or BACKEND_URL
 
     def notify_completion(self, upload_id: str, file_path: str, metadata: dict):
         """
-        Gửi thông báo upload hoàn tất (tương đương với POST /api/documents).
-        
+        Báo cáo với Flask rằng file upload đã hoàn tất.
+
         Args:
-            upload_id (str): ID của file
-            file_path (str): Đường dẫn đầy đủ trên server (vd: .../storage/uploads/file.pdf)
-            metadata (dict): Dict chứa (token, description, visibility, tags)
+            upload_id (str): ID của file (do socket server tạo)
+            file_path (str): Đường dẫn tuyệt đối nơi file được lưu
+            metadata (dict): Gồm token, filename, description, visibility, tags
         """
         if not metadata:
-            print(f"BackendClient: Không thể báo cáo {upload_id} vì thiếu metadata.")
+            print(f"[BackendClient] ⚠️ Thiếu metadata cho {upload_id}")
             return
 
-        # Lấy token ra khỏi metadata để đưa vào Header
-        token = metadata.get('token')
+        token = metadata.get("token")
         if not token:
-            print(f"BackendClient: Không thể báo cáo {upload_id} vì thiếu token.")
+            print(f"[BackendClient] ⚠️ Thiếu token xác thực cho {upload_id}")
             return
 
-        # Xây dựng headers chứa token
-        headers = {
-            "Authorization": f"Bearer {token}"
+        headers = {"Authorization": f"Bearer {token}"}
+
+        payload = {
+            "filename": metadata.get("filename"),
+            "file_path": file_path,
+            "description": metadata.get("description"),
+            "visibility": metadata.get("visibility", "private"),
+            "tags": metadata.get("tags", []),
         }
 
-        # Xây dựng payload (body) mà app.py mong đợi
-        payload = {
-            "filename": metadata.get('filename'),
-            "file_path": file_path, # Đường dẫn mà socket server đã lưu file
-            "description": metadata.get('description'),
-            "visibility": metadata.get('visibility', 'private'),
-            "tags": metadata.get('tags', [])
-        }
-        
-        # Chạy trong thread riêng để không block server socket
-        t = threading.Thread(target=safe_post, args=(self.url, payload, headers), daemon=True)
-        t.start()
+        # Chạy thread riêng để tránh block socket server
+        thread = threading.Thread(
+            target=safe_post, args=(self.url, payload, headers), daemon=True
+        )
+        thread.start()
+
+        print(f"[BackendClient] 📤 Đang gửi thông báo hoàn tất cho {payload['filename']}...")
