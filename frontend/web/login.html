@@ -1,0 +1,141 @@
+<!-- Trang đăng nhập: form nhập thông tin, gửi request xác thực -->
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng nhập | Studocu Việt Nam</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+
+<body>
+  <!-- HEADER -->
+  <header class="header">
+    <div class="logo">
+      <img src="assets/logo.jpg" alt="Studocu Logo">
+      
+    </div>
+<div class="user-actions">
+  <button id="homeBtn" onclick="window.location.href='index.html'">Thoát</button>
+  <button id="loginBtn" onclick="window.location.href='login.html'">Đăng nhập</button>
+  <button id="registerBtn" onclick="window.location.href='register.html'">Đăng ký</button>
+  <img src="assets/avatar.jpg" alt="Avatar" class="avatar hidden" id="userAvatar" onclick="window.location.href='index.html'">
+</div>
+  </header>
+
+  <!-- FORM ĐĂNG NHẬP -->
+  <main class="auth-container">
+    <div class="auth-box">
+      <h2>🔑 Đăng nhập tài khoản</h2>
+      <form id="loginForm" autocomplete="off">
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="password" id="password" placeholder="Mật khẩu" required>
+        <button type="submit" class="btn-primary" id="loginSubmit">Đăng nhập</button>
+        <p class="msg" id="loginMsg"></p>
+      </form>
+      <p class="switch">
+        Chưa có tài khoản?
+        <a href="register.html">Đăng ký ngay</a>
+      </p>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-links" style="text-align:center;">
+      <a href="#">Giới thiệu</a> |
+      <a href="#">Liên hệ</a> |
+      <a href="#">Điều khoản</a> |
+      <a href="#">Chính sách bảo mật</a>
+    </div>
+
+    <div class="footer-info">
+      <p>Studocu không liên kết hoặc được xác nhận bởi bất kỳ trường học, cao đẳng hoặc đại học nào.</p>
+      <p>Copyright © 2025 StudeerSnel B.V., Keizersgracht 424-sous, 1016 GC Amsterdam</p>
+      <p>KVK: 56829787, BTW: NL852321363B01</p>
+    </div>
+  </footer>
+
+  <!-- POPUP LOADING -->
+  <div class="popup hidden" id="popupBox">
+    <div class="popup-box">
+      <div class="loader"></div>
+      <p id="popupText">Đang xử lý...</p>
+    </div>
+  </div>
+
+  <!-- SCRIPT -->
+  <script>
+    const form = document.getElementById("loginForm");
+    const popup = document.getElementById("popupBox");
+    const popupText = document.getElementById("popupText");
+    const msg = document.getElementById("loginMsg");
+    
+    // ĐỊA CHỈ API BACKEND  
+    const API_URL = "http://127.0.0.1:5000";
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      if (!email || !password) {
+        msg.textContent = "⚠️ Vui lòng nhập đầy đủ thông tin.";
+        msg.style.color = "red";
+        return;
+      }
+
+      popup.classList.remove("hidden");
+      popupText.textContent = "Đang xác thực...";
+      msg.textContent = "";
+
+      // GỌI API ĐĂNG NHẬP
+      fetch(`${API_URL}/api/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password
+        }),
+      })
+      .then(response => response.json().then(data => ({ status: response.status, body: data })))
+      .then(res => {
+        if (res.status === 200) { // 200 OK
+          popupText.textContent = "✅ Đăng nhập thành công!";
+          msg.textContent = `Chào mừng, ${res.body.user.name}!`;
+          msg.style.color = "green";
+
+          // LƯU TOKEN VÀO LOCALSTORAGE
+          localStorage.setItem("jwtToken", res.body.token);
+          localStorage.setItem("userName", res.body.user.name);
+
+          setTimeout(() => {
+            popup.classList.add("hidden");
+            window.location.href = "index.html"; // Chuyển về trang chủ
+          }, 1500);
+        } else {
+          // Xử lý lỗi (vd: 401, 404)
+          popupText.textContent = "❌ Sai thông tin đăng nhập!";
+          msg.textContent = res.body.message;
+          msg.style.color = "red";
+
+          setTimeout(() => {
+            popup.classList.add("hidden");
+          }, 2000);
+        }
+      })
+      .catch(error => {
+        console.error("Lỗi:", error);
+        popupText.textContent = "❌ Lỗi kết nối!";
+        msg.textContent = "Không thể kết nối tới server.";
+        msg.style.color = "red";
+        setTimeout(() => popup.classList.add("hidden"), 2000);
+      });
+    });
+  </script>
+  <script src="js/api.js"></script>
+</body>
+</html>
