@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /* File: frontend/web/css/myfiles.css */
 
 /* ====== BỐ CỤC CHUNG ====== */
@@ -218,4 +219,226 @@
 @keyframes fadeIn {
     from { opacity: 0; transform: scale(0.95); }
     to { opacity: 1; transform: scale(1); }
+=======
+/* File: frontend/web/css/myfiles.css */
+
+/* ====== BỐ CỤC CHUNG ====== */
+.my-files-section {
+    background-color: #ffffff;
+    padding: 25px 40px;
+    margin-bottom: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.my-files-section h2 {
+    color: #004aad;
+    margin-bottom: 5px;
+}
+.my-files-section p {
+    color: #555;
+    margin-bottom: 25px;
+}
+
+/* Ẩn/hiện phần tử */
+.hidden {
+    display: none !important;
+}
+
+/* Grid layout for document cards */
+.doc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+    align-items: start;
+}
+
+.doc-card {
+    background-color: #fff;
+    padding: 14px;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+}
+
+/* ====== TÙY CHỈNH THẺ TÀI LIỆU ====== */
+/* Kế thừa .doc-card từ style.css nhưng thêm chi tiết */
+
+.doc-card h3 {
+    word-break: break-all; /* Ngăn tên file dài làm vỡ layout */
+    font-size: 18px;
+    color: #004aad;
+}
+
+.doc-card p.desc {
+    min-height: 40px;
+    color: #333;
+}
+
+.info-row {
+    font-size: 14px;
+    color: #444;
+    margin-bottom: 6px;
+}
+
+.info-row strong {
+    color: #003380;
+}
+
+/* Style cho trạng thái Public/Private */
+.status {
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 12px;
+}
+.status.public {
+    background-color: #00a65a;
+}
+.status.private {
+    background-color: #d9534f;
+}
+
+/* Nút Sửa/Xóa */
+.doc-card-actions {
+    margin-top: 15px;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+    display: flex;
+    gap: 10px;
+}
+
+.btn-action {
+    flex: 1; /* Hai nút chia đều không gian */
+    padding: 8px 10px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.btn-edit {
+    background: linear-gradient(90deg, #ff9800, #ffb84d);
+}
+.btn-edit:hover {
+    box-shadow: 0 2px 5px rgba(255, 152, 0, 0.3);
+}
+
+.btn-delete {
+    background: linear-gradient(90deg, #d9534f, #f66c6a);
+}
+.btn-delete:hover {
+    box-shadow: 0 2px 5px rgba(217, 83, 79, 0.3);
+}
+
+/* ====== MODAL (POP-UP) CHỈNH SỬA ====== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-box {
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    width: 500px;
+    max-width: 90%;
+    overflow: hidden;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-header {
+    background-color: #f7f8fa;
+    padding: 15px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.modal-header h3 {
+    margin: 0;
+    color: #004aad;
+}
+.modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #777;
+    cursor: pointer;
+}
+
+.modal-body {
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+.modal-body label {
+    font-weight: 600;
+    color: #333;
+}
+.modal-body input,
+.modal-body textarea,
+.modal-body select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 15px;
+}
+.modal-body input:disabled {
+    background-color: #eee; /* Nền xám cho tên file không sửa được */
+}
+
+.modal-footer {
+    background-color: #f7f8fa;
+    padding: 15px 25px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-modal-cancel, .btn-modal-save {
+    padding: 10px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-modal-cancel {
+    background-color: #ddd;
+    color: #333;
+}
+.btn-modal-cancel:hover {
+    background-color: #ccc;
+}
+.btn-modal-save {
+    background-color: #004aad;
+    color: #fff;
+}
+.btn-modal-save:hover {
+    background-color: #003380;
+}
+
+/* Hiệu ứng modal */
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+>>>>>>> 88f8cf1edb4805094d39c53b5770d1206b451b7f
 }
