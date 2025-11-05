@@ -109,7 +109,7 @@
           msg.style.color = "green";
 
           // LƯU TOKEN VÀO LOCALSTORAGE
-          localStorage.setItem("jwtToken", res.body.token);
+          localStorage.setItem("token", res.body.token);
           localStorage.setItem("userName", res.body.user.name);
 
           setTimeout(() => {
@@ -137,5 +137,6 @@
     });
   </script>
   <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>

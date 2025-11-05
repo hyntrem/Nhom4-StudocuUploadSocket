@@ -18,6 +18,11 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from dotenv import load_dotenv
+from flask_socketio import SocketIO
+import socket as py_socket # Đổi tên để tránh xung đột
+import threading
+import json
+
 
 # ==========================================================
 # 🔧 CẤU HÌNH CƠ BẢN
@@ -55,6 +60,12 @@ REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
 # ==========================================================
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
+# Cấu hình SocketIO làm cầu nối
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Nơi mà server.py (TCP) đang chạy
+TCP_SERVER_HOST = '127.0.0.1'
+TCP_SERVER_PORT = 6000
 try:
     r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
     r.ping()
@@ -325,9 +336,158 @@ def trigger_upload(current_user):
     }), 200
 
 # ==========================================================
-# 🏁 MAIN ENTRY
+# 📄 DOCUMENT APIs (BỔ SUNG PHẦN THIẾU)
+# ==========================================================
+
+@app.route('/api/documents/<int:doc_id>', methods=['GET'])
+@token_required
+def get_document_detail(current_user, doc_id):
+    """ API để xem chi tiết 1 file (dùng cho modal xem trước) """
+    doc = Document.query.get(doc_id)
+    if not doc:
+        return jsonify({'message': 'Không tìm thấy tài liệu'}), 404
+    
+    # Kiểm tra quyền: Hoặc là chủ file, hoặc file là public
+    if doc.user_id != current_user.id and doc.visibility == 'private':
+        return jsonify({'message': 'Không có quyền truy cập'}), 403
+    
+    return jsonify({
+        'id': doc.id,
+        'filename': doc.filename,
+        'file_path': doc.file_path,
+        'visibility': doc.visibility,
+        'description': doc.description,
+        'created_at': doc.created_at,
+        'tags': [t.name for t in doc.tags],
+        'owner_name': doc.owner.name 
+    }), 200
+
+
+@app.route('/api/documents/<int:doc_id>', methods=['PUT'])
+@token_required
+def update_document(current_user, doc_id):
+    """ API để cập nhật metadata (dùng cho modal chỉnh sửa) """
+    doc = Document.query.get(doc_id)
+    
+    if not doc:
+        return jsonify({'message': 'Không tìm thấy tài liệu'}), 404
+    
+    # Chỉ chủ sở hữu mới được sửa
+    if doc.user_id != current_user.id:
+        return jsonify({'message': 'Không có quyền chỉnh sửa'}), 403
+
+    data = request.get_json()
+    
+    # Cập nhật các trường
+    if 'description' in data:
+        doc.description = data['description']
+    if 'visibility' in data:
+        doc.visibility = data['visibility']
+    
+    # Xử lý tags
+    if 'tags' in data:
+        doc.tags.clear() # Xóa tag cũ
+        for t in data.get('tags', []):
+            tag_name = t.strip().lower()
+            if tag_name:
+                tag = Tag.query.filter_by(name=tag_name).first() or Tag(name=tag_name)
+                db.session.add(tag)
+                doc.tags.append(tag)
+
+    db.session.commit()
+    return jsonify({'message': 'Cập nhật thành công'}), 200
+
+# ==========================================================
+# 🔌 SOCKET-IO BRIDGE (CẦU NỐI)
+# ==========================================================
+
+# Lưu trữ các kết nối TCP cho mỗi client trình duyệt
+client_tcp_sockets = {}
+
+@socketio.on('connect')
+def handle_connect():
+    sid = request.sid
+    print(f'[SocketIO] ✅ Client {sid} đã kết nối (Trình duyệt).')
+
+    # Tạo một kết nối TCP MỚI đến server.py cho client này
+    try:
+        sock = py_socket.socket(py_socket.AF_INET, py_socket.SOCK_STREAM)
+        sock.connect((TCP_SERVER_HOST, TCP_SERVER_PORT))
+        client_tcp_sockets[sid] = sock
+        print(f'[SocketIO] 🔗 Đã tạo cầu nối TCP tới cổng 6000 cho {sid}.')
+
+        # Bắt đầu một luồng riêng để lắng nghe phản hồi từ server.py
+        threading.Thread(target=tcp_response_listener, args=(sid, sock), daemon=True).start()
+    except Exception as e:
+        print(f'[SocketIO] ❌ Không thể kết nối tới server TCP (cổng 6000): {e}')
+        socketio.emit('server_error', {'reason': 'Cannot connect to TCP server'}, room=sid)
+
+def tcp_response_listener(sid, tcp_sock):
+    """ Lắng nghe phản hồi từ server.py (TCP) và gửi về trình duyệt """
+    buffer = b""
+    try:
+        while True:
+            data = tcp_sock.recv(1024)
+            if not data:
+                break # Server TCP đã đóng
+
+            buffer += data
+            # Server TCP gửi tin nhắn JSON bằng \n
+            while b'\n' in buffer:
+                message_raw, buffer = buffer.split(b'\n', 1)
+                try:
+                    message_json = json.loads(message_raw.decode('utf-8'))
+                    # Gửi phản hồi về đúng trình duyệt
+                    socketio.emit('tcp_response', message_json, room=sid)
+                except Exception:
+                    print(f'[SocketIO] Lỗi parse JSON từ TCP: {message_raw}')
+
+    except Exception as e:
+        print(f'[SocketIO] Lỗi luồng TCP listener: {e}')
+
+    # Dọn dẹp khi kết nối hỏng
+    if sid in client_tcp_sockets:
+        del client_tcp_sockets[sid]
+    print(f'[SocketIO] ❎ Đã đóng luồng listener cho {sid}.')
+
+
+@socketio.on('tcp_message')
+def handle_tcp_message(message):
+    """ Nhận tin nhắn từ trình duyệt và chuyển tiếp đến server.py (TCP) """
+    sid = request.sid
+    if sid not in client_tcp_sockets:
+        return # Lỗi, client chưa kết nối
+
+    tcp_sock = client_tcp_sockets[sid]
+
+    try:
+        if isinstance(message, dict): # Gửi JSON (header)
+            tcp_sock.sendall((json.dumps(message) + "\n").encode('utf-8'))
+        elif isinstance(message, bytes): # Gửi Bytes (chunk)
+            tcp_sock.sendall(message)
+    except Exception as e:
+        print(f'[SocketIO] Lỗi khi gửi dữ liệu tới TCP: {e}')
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    sid = request.sid
+    if sid in client_tcp_sockets:
+        # Đóng kết nối TCP khi trình duyệt ngắt kết nối
+        try:
+            client_tcp_sockets[sid].close()
+        except Exception: pass
+        del client_tcp_sockets[sid]
+    print(f'[SocketIO] ❎ Client {sid} đã ngắt kết nối (Trình duyệt).')
+
+
+# ==========================================================
+# 🏁 MAIN ENTRY (SỬA LẠI ĐỂ CHẠY SOCKETIO)
 # ==========================================================
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True, port=5000)
+    # app.run(debug=True, port=5000) # Dòng cũ
+
+    # Dòng mới: Chạy máy chủ qua SocketIO
+    print("🚀 Khởi chạy Flask (API) và SocketIO (Cầu nối) trên cổng 5000...")
+    socketio.run(app, debug=True, port=5000, allow_unsafe_werkzeug=True)

@@ -4,42 +4,40 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trang chủ | Studocu Việt Nam</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
   <!-- HEADER -->
   <header class="header">
     <div class="logo">
-      <img src="assets/logo.jpg" alt="Studocu Logo">
-      <span>Studocu</span>
+        <img src="assets/logo.jpg" alt="Studocu Logo">
+        <span>Studocu</span>
     </div>
-
     <div class="user-actions">
-      <button id="loginBtn" onclick="window.location.href='login.html'">Đăng nhập</button>
-      <button id="registerBtn" onclick="window.location.href='register.html'">Đăng ký</button>
-      <img src="assets/avatar.jpg" alt="Avatar" class="avatar hidden" id="userAvatar" onclick="window.location.href='profile.html'">
+        <button id="loginBtn" onclick="window.location.href='login.html'">Đăng nhập</button>
+        <button id="registerBtn" onclick="window.location.href='register.html'">Đăng ký</button>
+        
+        <button id="logoutBtn" class="hidden">Đăng xuất</button>
     </div>
-  </header>
+</header>
 
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <h3>Tài khoản</h3>
     <a href="upload.html" class="btn-new">+ Mới</a>
-
     <ul>
-      <li><a href="index.html" class="active">🏠 Trang chủ</a></li>
-      <li><a href="myfiles.html">📁 Kho lưu trữ của tôi</a></li>
-      <li><a href="recent.html">🕓 Nội dung gần đây</a></li>
-      <li><a href="trash.html">🗑️ Thùng rác</a></li>
-      <li><a href="favorites.html">⭐ Bộ nhớ</a></li>
+        <li><a href="index.html">🏠 Trang chủ</a></li>
+        <li><a href="documents.html">📁 Kho lưu trữ của tôi</a></li> 
+        <li><a href="recent.html">🕓 Nội dung gần đây</a></li>
+        <li><a href="trash.html">🗑️ Thùng rác</a></li>
+        <li><a href="favorites.html">⭐ Bộ nhớ</a></li>
     </ul>
-
     <hr>
     <ul>
-      <li><a href="settings.html">⚙️ Cài đặt</a></li>
+        <li><a href="settings.html">⚙️ Cài đặt</a></li>
     </ul>
-  </aside>
+</aside>
 
   <!-- MAIN CONTENT -->
   <main class="content">
@@ -98,7 +96,7 @@
       <p>KVK: 56829787, BTW: NL852321363B01</p>
     </div>
   </footer>
-
+  <script src="js/api.js"></script>  
   <script src="js/main.js"></script>
 </body>
 </html>

@@ -41,6 +41,9 @@ body {
 .header .logo:hover img {
   transform: scale(1.05);
 }
+.hidden {
+  display: none !important;
+}
 .user-actions {
   display: flex;
   align-items: center;

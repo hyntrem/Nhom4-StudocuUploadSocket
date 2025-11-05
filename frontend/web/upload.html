@@ -1,83 +1,44 @@
-<<<<<<< HEAD
-<!-- Trang Upload tài liệu | Studocu Việt Nam -->
-=======
 <!-- Trang upload: drag & drop, Start/Pause/Resume/Stop upload -->
->>>>>>> 88f8cf1edb4805094d39c53b5770d1206b451b7f
 <!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-<<<<<<< HEAD
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upload tài liệu | Studocu Việt Nam</title>
-
-  <!-- CSS -->
-=======
-  <title>Upload tài liệu | Studocu Việt Nam</title>
->>>>>>> 88f8cf1edb4805094d39c53b5770d1206b451b7f
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/upload.css">
 </head>
 
 <body>
-<<<<<<< HEAD
-  <!-- ============ HEADER ============ -->
-=======
   <!-- HEADER -->
->>>>>>> 88f8cf1edb4805094d39c53b5770d1206b451b7f
   <header class="header">
     <div class="logo">
-      <img src="assets/logo.png" alt="Studocu Logo">
-      <span>Studocu</span>
+        <img src="assets/logo.jpg" alt="Studocu Logo">
+        <span>Studocu</span>
     </div>
-<<<<<<< HEAD
-
     <div class="user-actions">
-      <img src="assets/avatar.jpg" alt="Avatar" class="avatar" id="userAvatar">
-      <button id="logoutBtn" class="logout-btn">Đăng xuất</button>
+        <button id="loginBtn" onclick="window.location.href='login.html'">Đăng nhập</button>
+        <button id="registerBtn" onclick="window.location.href='register.html'">Đăng ký</button>
+        
+        <button id="logoutBtn" class="hidden">Đăng xuất</button>
     </div>
-  </header>
-
-  <!-- ============ SIDEBAR ============ -->
-  <aside class="sidebar">
-    <ul>
-      <li><a href="index.html">🏠 Trang chủ</a></li>
-      <li><a href="upload.html" class="active">📤 Tải tài liệu</a></li>
-      <li><a href="myfiles.html">📂 Kho lưu trữ của tôi</a></li>
-      <li><a href="#">🕒 Gần đây</a></li>
-      <li><a href="#">🗑️ Thùng rác</a></li>
-      <li><a href="#">⭐ Đã lưu</a></li>
-=======
-    <div class="user-actions">
-      <button id="logoutBtn">Đăng xuất</button>
-      <img src="assets/avatar.jpg" class="avatar" id="userAvatar" alt="Avatar">
-    </div>
-  </header>
+</header>
 
   <!-- SIDEBAR -->
   <aside class="sidebar">
+    <h3>Tài khoản</h3>
+    <a href="upload.html" class="btn-new">+ Mới</a>
     <ul>
-      <li><a href="index.html">🏠 Trang chủ</a></li>
-      <li><a href="upload.html" class="active">➕ Tải tài liệu</a></li>
-      <li><a href="myfiles.html">📂 Kho lưu trữ của tôi</a></li>
-      <li><a href="#">🕒 Nội dung gần đây</a></li>
-      <li><a href="#">🗑️ Thùng rác</a></li>
-      <li><a href="#">⭐ Bộ nhớ</a></li>
->>>>>>> 88f8cf1edb4805094d39c53b5770d1206b451b7f
-      <li><a href="#">⚙️ Cài đặt</a></li>
+        <li><a href="index.html">🏠 Trang chủ</a></li>
+        <li><a href="documents.html">📁 Kho lưu trữ của tôi</a></li> <li><a href="recent.html">🕓 Nội dung gần đây</a></li>
+        <li><a href="trash.html">🗑️ Thùng rác</a></li>
+        <li><a href="favorites.html">⭐ Bộ nhớ</a></li>
     </ul>
-  </aside>
+    <hr>
+    <ul>
+        <li><a href="settings.html">⚙️ Cài đặt</a></li>
+    </ul>
+</aside>
 
-<<<<<<< HEAD
-  <!-- ============ MAIN CONTENT ============ -->
-  <main class="content">
-    <section class="upload-container">
-      <h2>📤 Tải lên tài liệu của bạn</h2>
-
-      <!-- Drag & Drop Zone -->
-      <div id="dropZone" class="drop-zone">
-        <p>Kéo & thả tệp vào đây hoặc <span id="browseFile" class="browse">chọn tệp</span></p>
-=======
   <!-- CONTENT -->
   <main class="content">
     <section class="upload-container">
@@ -86,104 +47,36 @@
       <!-- Drag & Drop zone -->
       <div id="dropZone" class="drop-zone">
         <p>Kéo thả tệp vào đây hoặc <span id="browseFile" class="browse">chọn tệp</span></p>
->>>>>>> 88f8cf1edb4805094d39c53b5770d1206b451b7f
         <input type="file" id="fileInput" hidden>
       </div>
 
       <!-- Metadata form -->
       <div class="meta-section">
-<<<<<<< HEAD
-        <label for="visibility">🔒 Chế độ hiển thị:</label>
-=======
         <label for="visibility">Chế độ hiển thị:</label>
->>>>>>> 88f8cf1edb4805094d39c53b5770d1206b451b7f
         <select id="visibility">
           <option value="public">Công khai</option>
           <option value="private">Riêng tư</option>
         </select>
 
-<<<<<<< HEAD
-        <label for="tags">🏷️ Thẻ (tags):</label>
-        <input type="text" id="tags" placeholder="VD: lập trình, python, toán học">
-
-        <label for="description">📝 Mô tả ngắn:</label>
-        <textarea id="description" rows="3" placeholder="Thêm mô tả cho tài liệu của bạn..."></textarea>
-=======
         <label for="tags">Thẻ (tag):</label>
         <input type="text" id="tags" placeholder="Nhập thẻ, cách nhau bằng dấu phẩy">
 
         <label for="description">Mô tả:</label>
         <textarea id="description" rows="3" placeholder="Thêm mô tả ngắn cho tài liệu..."></textarea>
->>>>>>> 88f8cf1edb4805094d39c53b5770d1206b451b7f
       </div>
 
       <!-- Upload controls -->
       <div class="upload-controls">
-<<<<<<< HEAD
-        <button id="startBtn" class="btn start">▶️ Bắt đầu</button>
-        <button id="pauseBtn" class="btn pause" disabled>⏸ Tạm dừng</button>
-        <button id="resumeBtn" class="btn resume" disabled>🔁 Tiếp tục</button>
-        <button id="stopBtn" class="btn stop" disabled>⛔ Dừng</button>
-=======
         <button id="startBtn" class="btn start">Bắt đầu</button>
         <button id="pauseBtn" class="btn pause" disabled>Tạm dừng</button>
         <button id="resumeBtn" class="btn resume" disabled>Tiếp tục</button>
         <button id="stopBtn" class="btn stop" disabled>Dừng</button>
->>>>>>> 88f8cf1edb4805094d39c53b5770d1206b451b7f
       </div>
 
       <!-- Progress bar -->
       <div class="progress-bar">
         <div id="progress" class="progress"></div>
       </div>
-<<<<<<< HEAD
-      <p id="statusText" class="status-text">Chưa có tiến trình nào...</p>
-    </section>
-  </main>
-
-  <!-- ============ FOOTER ============ -->
-  <footer class="footer">
-    <div class="footer-links" style="text-align:center;">
-      <a href="#">Giới thiệu</a> |
-      <a href="#">Liên hệ</a> |
-      <a href="#">Điều khoản</a> |
-      <a href="#">Chính sách bảo mật</a>
-    </div>
-
-    <div class="footer-info">
-      <p>Studocu không liên kết hoặc được xác nhận bởi bất kỳ trường học, cao đẳng hoặc đại học nào.</p>
-      <p>Copyright © 2025 StudeerSnel B.V., Keizersgracht 424-sous, 1016 GC Amsterdam</p>
-      <p>KVK: 56829787, BTW: NL852321363B01</p>
-    </div>
-  </footer>
-
-  <!-- ============ SCRIPTS ============ -->
-  <script src="js/api.js"></script>
-  <script src="js/upload.js"></script>
-
-  <!-- ✅ Kiểm tra đăng nhập và xử lý đăng xuất -->
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const token = localStorage.getItem("token");
-      const logoutBtn = document.getElementById("logoutBtn");
-      const avatar = document.getElementById("userAvatar");
-
-      if (!token) {
-        // Nếu chưa đăng nhập -> chuyển về login
-        window.location.href = "login.html";
-        return;
-      }
-
-      logoutBtn.addEventListener("click", () => {
-        if (confirm("Bạn có chắc muốn đăng xuất không?")) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          window.location.href = "login.html";
-        }
-      });
-    });
-  </script>
-=======
       <p id="statusText" class="status-text"></p>
     </section>
   </main>
@@ -194,9 +87,10 @@
     <p>Copyright © 2025 StudeerSnel B.V., Keizersgracht 424-sous, 1016 GC Amsterdam</p>
     <p>KVK: 56829787, BTW: NL852321363B01</p>
   </footer>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
   <script src="js/api.js"></script>
   <script src="js/upload.js"></script>
+  <script src="js/main.js"></script>
   
->>>>>>> 88f8cf1edb4805094d39c53b5770d1206b451b7f
 </body>
 </html>

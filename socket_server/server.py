@@ -1,4 +1,6 @@
-# ...existing code...
+# ==============================
+# 🚀 SERVER TCP SOCKET (Bản chạy được với client.py)
+# ==============================
 import socket
 import threading
 import json
@@ -8,230 +10,239 @@ import traceback
 import sys
 from typing import Optional
 
-# Đảm bảo Python tìm thấy các module trong thư mục hiện tại
+# Đảm bảo Python tìm thấy các module trong cùng thư mục
 sys.path.insert(0, os.path.dirname(__file__))
 
+# ==============================
+# 📦 IMPORT MODULES
+# ==============================
 try:
-    # Nhập các module con
-    from state_manager import StateManager
+    from persistence import Persistence
     from chunk_handler import write_chunk
     from backend_client import BackendClient
 except Exception as e:
-    print("LỖI: không thể nhập các module phụ:", e)
+    print("❌ LỖI: không thể nhập các module phụ:", e)
     traceback.print_exc()
     raise
 
-# --- CẤU HÌNH SERVER ---
-HOST = '0.0.0.0'  # Lắng nghe trên tất cả các địa chỉ IP
-PORT = 6000       # Cổng lắng nghe (LƯU Ý: cần khớp với file .env)
-BASE_DIR = os.path.join(os.path.dirname(__file__), '..')
-# Thư mục để lưu file upload (vd: ../storage/uploads)
-STORAGE_DIR = os.path.join(BASE_DIR, 'storage', 'uploads')
-os.makedirs(STORAGE_DIR, exist_ok=True) # Tạo thư mục nếu chưa có
+# ==============================
+# ⚙️ CẤU HÌNH SERVER
+# ==============================
+HOST = "0.0.0.0"
+PORT = 6000
+BASE_DIR = os.path.join(os.path.dirname(__file__), "..")
+STORAGE_DIR = os.path.join(BASE_DIR, "storage", "uploads")
+os.makedirs(STORAGE_DIR, exist_ok=True)
 
-# Khởi tạo các đối tượng quản lý (sẽ dùng cho mọi kết nối)
-state = StateManager()       # Quản lý trạng thái (pause, resume, offset...)
-backend = BackendClient()    # Giao tiếp với API Backend (Flask)
+state = Persistence()
+backend = BackendClient()
 
+# ==============================
+# 🔧 HÀM TIỆN ÍCH
+# ==============================
 def send_json(conn: socket.socket, obj: dict) -> bool:
-    """
-    Hàm helper: Gửi một đối tượng Python (dict) dưới dạng JSON qua socket.
-    Thêm ký tự '\n' để client biết đâu là kết thúc một tin nhắn.
-    """
+    """Gửi dict (JSON) qua socket, có ký tự '\n' để client phân biệt."""
     try:
-        # Chuyển dict -> string JSON -> bytes UTF-8
-        data = (json.dumps(obj) + '\n').encode('utf-8')
+        data = (json.dumps(obj) + "\n").encode("utf-8")
         conn.sendall(data)
         return True
-    except Exception as e:
-        # Nếu gửi lỗi (client ngắt kết nối), báo lỗi và trả về False
-        print(f"Lỗi send_json: {e}")
+    except Exception:
         return False
 
+
 def safe_read_exact(f, n: int) -> Optional[bytes]:
-    """
-    Hàm helper: Đọc chính xác N-bytes từ một kết nối (file-like object).
-    Hữu ích để đọc nội dung chunk mà không bị thiếu.
-    """
-    parts = []
-    remaining = n
+    """Đọc chính xác n bytes từ stream (ngăn lỗi thiếu chunk)."""
+    parts, remaining = [], n
     while remaining > 0:
         chunk = f.read(remaining)
-        if not chunk: # Nếu client ngắt kết nối giữa chừng
+        if not chunk:
             return None
         parts.append(chunk)
         remaining -= len(chunk)
-    return b''.join(parts) # Ghép các phần lại
+    return b"".join(parts)
 
+
+# ==============================
+# 🧠 HÀM XỬ LÝ MỖI CLIENT
+# ==============================
 def handle_client(conn: socket.socket, addr):
-    """
-    Hàm xử lý chính: Mỗi client kết nối sẽ được chạy trong 1 luồng (thread) riêng.
-    Hàm này xử lý toàn bộ logic giao tiếp với 1 client.
-    """
-    peer = f"{addr[0]}:{addr[1]}" # Lấy địa chỉ IP:PORT của client
-    # conn.makefile('rb') biến socket thành 1 file-object, cho phép ta dùng f.readline()
-    f = conn.makefile('rb')
-    print(f"Client mới kết nối từ {peer}")
+    peer = f"{addr[0]}:{addr[1]}"
+    f = conn.makefile("rb")
+    print(f"🔌 Client mới: {peer}")
+
     try:
-        # Vòng lặp chính: Liên tục đọc tin nhắn từ client
         while True:
-            line = f.readline() # Đọc "header" (là 1 dòng JSON)
+            line = f.readline()
             if not line:
-                # Nếu không đọc được gì -> client đã ngắt kết nối
-                print(f"Client {peer} đã ngắt kết nối.")
+                print(f"❎ {peer} đã ngắt kết nối.")
                 break
-            
-            # --- Xử lý Header (tin nhắn JSON) ---
+
             try:
-                header = json.loads(line.decode('utf-8').strip())
+                header = json.loads(line.decode("utf-8").strip())
             except Exception:
                 send_json(conn, {"status": "error", "reason": "invalid_header"})
-                continue # Bỏ qua tin nhắn lỗi, đợi tin nhắn tiếp
+                continue
 
-            action = header.get('action')     # Hành động client muốn (start, chunk, pause...)
-            upload_id = header.get('upload_id') # ID duy nhất của file upload
-
+            action = header.get("action")
+            upload_id = header.get("upload_id")
             if not upload_id:
                 send_json(conn, {"status": "error", "reason": "missing_upload_id"})
                 continue
 
             try:
-                # --- PHÂN LOẠI HÀNH ĐỘNG ---
-
-                if action == 'start':
-                    # Client muốn bắt đầu một file upload mới
-                    filename = header.get('filename')
-                    filesize = int(header.get('filesize', 0))
-                    chunk_size = int(header.get('chunk_size', 65536))
+                # --- START ---
+                if action == "start":
+                    filename = header.get("filename")
+                    filesize = int(header.get("filesize", 0))
+                    chunk_size = int(header.get("chunk_size", 65536))
+                    metadata = header.get("metadata", {}) 
                     if not filename or filesize <= 0:
                         send_json(conn, {"status": "error", "reason": "invalid_start_params"})
                         continue
                     
-                    # 1. Lưu trạng thái bắt đầu
-                    state.start_upload(upload_id, filename, filesize, peer)
-                    offset = state.get_offset(upload_id) # Lấy offset (thường là 0, hoặc khác 0 nếu là resume)
-                    # 2. Báo cho API Backend biết
-                    backend.update(upload_id, 'started', offset, filesize)
-                    # 3. Trả lời client, báo offset hiện tại để client biết gửi từ đâu
-                    send_json(conn, {"status": "ok", "upload_id": upload_id, "offset": offset, "chunk_size": chunk_size})
+                    info = state.get(upload_id) 
+                    if not info: 
+                        info = {
+                            "filename": filename,
+                            "filesize": filesize,
+                            "offset": 0,
+                            "status": "started",
+                            "peer": peer,
+                            "metadata": metadata,
+                            "created_at": time.time()
+                        }
+                    else: 
+                        info["peer"] = peer
+                        info["status"] = "resumed"
+                    
+                    state.update(upload_id, info)
+                    offset = info.get("offset", 0)
 
-                elif action == 'chunk':
-                    # Client đang gửi một phần (chunk) của file
-                    length = int(header.get('length', 0)) # Kích thước chunk
-                    offset = int(header.get('offset', 0)) # Vị trí bắt đầu ghi
+                    send_json(conn, {
+                        "status": "ok",
+                        "upload_id": upload_id,
+                        "offset": offset,
+                        "chunk_size": chunk_size
+                    })
+
+                # --- CHUNK ---
+                elif action == "chunk":
+                    length = int(header.get("length", 0))
+                    offset = int(header.get("offset", 0))
                     if length <= 0:
                         send_json(conn, {"status": "error", "reason": "invalid_length"})
                         continue
-                    
-                    # 1. Đọc chính xác N-bytes (nội dung file)
+
                     data = safe_read_exact(f, length)
-                    if data is None or len(data) != length:
-                        # Client ngắt kết nối khi đang gửi dở chunk
-                        print(f"Chunk không hoàn chỉnh từ {peer} (upload_id={upload_id})")
-                        break # Thoát vòng lặp, đóng kết nối
+                    if data is None:
+                        print(f"⚠️ Mất kết nối giữa chừng từ {peer}")
+                        break
+
+                    info = state.get(upload_id)
+                    filename = info.get("filename")
                     
-                    filename = state.get_filename(upload_id) # Lấy tên file từ state
-                    if filename is None:
+                    if not filename:
                         send_json(conn, {"status": "error", "reason": "unknown_upload"})
                         continue
-                    
-                    # 2. Xác định đường dẫn lưu file
-                    file_path = os.path.join(STORAGE_DIR, filename)
-                    try:
-                        # 3. Ghi chunk này xuống đĩa
-                        write_chunk(file_path, data, offset)
-                    except Exception as we:
-                        print(f"Lỗi ghi file: {we}")
+
+                    save_dir = os.path.join(STORAGE_DIR, upload_id)
+                    os.makedirs(save_dir, exist_ok=True)
+                    file_path = os.path.join(save_dir, filename)
+
+                    if not write_chunk(file_path, data, offset):
                         send_json(conn, {"status": "error", "reason": "write_failed"})
                         continue
-                    
-                    # 4. Cập nhật offset mới
+
                     new_offset = offset + length
-                    state.update_offset(upload_id, new_offset)
-                    # 5. Báo cáo tiến độ cho API Backend
-                    backend.update(upload_id, 'uploading', new_offset, state.get_size(upload_id))
-                    # 6. Gửi ACK (xác nhận) cho client, báo offset mới
+                    info["offset"] = new_offset
+                    info["status"] = "uploading"
+                    state.update(upload_id, info)
+
                     send_json(conn, {"status": "ok", "offset": new_offset})
 
-                    # 7. Kiểm tra xem đã upload xong 100% chưa
-                    if new_offset >= state.get_size(upload_id):
-                        state.finish_upload(upload_id) # Đánh dấu hoàn thành
-                        backend.update(upload_id, 'completed', new_offset, state.get_size(upload_id))
-                        print(f"--- Hoàn thành Upload: {upload_id} -> {filename} ---")
+                    if new_offset >= info.get("filesize", 0):
+                        print(f"✅ Hoàn thành upload {upload_id}: {filename}")
 
-                elif action == 'pause':
-                    # Client nhấn nút Tạm dừng
-                    state.pause_upload(upload_id)
-                    backend.update(upload_id, 'paused', state.get_offset(upload_id), state.get_size(upload_id))
+                        full_metadata = info.get("metadata", {})
+                        if "filename" not in full_metadata:
+                             full_metadata["filename"] = filename
+                        
+                        backend.notify_completion(upload_id, file_path, full_metadata)
+                        
+                        state.delete(upload_id)
+
+                # --- PAUSE ---
+                elif action == "pause":
+                    info = state.get(upload_id); info["status"] = "paused"; state.update(upload_id, info)
                     send_json(conn, {"status": "ok", "upload_id": upload_id, "state": "paused"})
+                    print(f"⏸ Upload {upload_id} đã tạm dừng.")
 
-                elif action == 'resume':
-                    # Client nhấn nút Tiếp tục
-                    offset = state.get_offset(upload_id)
-                    state.resume_upload(upload_id, peer)
-                    backend.update(upload_id, 'resumed', offset, state.get_size(upload_id))
+                # --- RESUME ---
+                elif action == "resume":
+                    info = state.get(upload_id)
+                    info["status"] = "resumed"; info["peer"] = peer
+                    state.update(upload_id, info)
+                    offset = info.get("offset", 0)
                     send_json(conn, {"status": "ok", "upload_id": upload_id, "offset": offset})
+                    print(f"▶️ Upload {upload_id} đã tiếp tục từ offset {offset}.")
 
-                elif action == 'stop':
-                    # Client nhấn nút Dừng (hủy)
-                    state.stop_upload(upload_id)
-                    backend.update(upload_id, 'stopped', state.get_offset(upload_id), state.get_size(upload_id))
+                # --- STOP ---
+                elif action == "stop":
+                    info = state.get(upload_id); info["status"] = "stopped"; state.update(upload_id, info)
                     send_json(conn, {"status": "ok", "upload_id": upload_id, "state": "stopped"})
+                    print(f"⛔ Upload {upload_id} đã dừng.")
 
-                elif action == 'query_resume':
-                    # Client vừa kết nối lại, hỏi xem file này đã upload tới đâu
-                    offset = state.get_offset(upload_id)
+                # --- QUERY RESUME ---
+                elif action == "query_resume":
+                    offset = state.get(upload_id).get("offset", 0)
                     send_json(conn, {"status": "ok", "upload_id": upload_id, "offset": offset})
 
                 else:
-                    # Client gửi action lạ
                     send_json(conn, {"status": "error", "reason": "unknown_action"})
+
             except Exception as inner:
-                print(f"Lỗi khi xử lý {peer}: {inner}")
+                print(f"❌ Lỗi khi xử lý {peer}: {inner}")
                 traceback.print_exc()
-                try:
-                    send_json(conn, {"status": "error", "reason": "internal_server_error"})
-                except Exception:
-                    pass # Client có thể đã ngắt kết nối rồi
+                send_json(conn, {"status": "error", "reason": "internal_server_error"})
+
     except Exception as ex:
-        # Lỗi ở vòng lặp ngoài (ví dụ: lỗi mạng nghiêm trọng)
-        print(f"Lỗi Client handler: {ex}")
+        print(f"🔥 Lỗi client {peer}: {ex}")
         traceback.print_exc()
     finally:
-        # Dọn dẹp
         try:
             f.close()
-        except Exception:
-            pass
+        except Exception: pass
         try:
-            conn.close() # Đóng kết nối socket
-        except Exception:
-            pass
-        print(f"Dọn dẹp kết nối cho {peer}")
+            conn.close()
+        except Exception: pass
+        print(f"🧹 Dọn dẹp kết nối cho {peer}")
 
+
+# ==============================
+# 🖥️ MAIN SERVER LOOP
+# ==============================
 def accept_loop():
-    """
-    Hàm khởi động server: Vòng lặp vô hạn để chấp nhận kết nối mới.
-    """
+    """Lắng nghe kết nối mới và tạo thread xử lý."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # Cho phép tái sử dụng địa chỉ
-        s.bind((HOST, PORT)) # Gắn server vào địa chỉ và cổng
-        s.listen(16) # Bắt đầu lắng nghe
-        print(f"Socket server đang lắng nghe trên {HOST}:{PORT}")
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.bind((HOST, PORT))
+        s.listen(16)
+        print(f"🚀 Socket server (TCP) đang chạy tại {HOST}:{PORT}")
+
         while True:
             try:
-                conn, addr = s.accept() # Chấp nhận kết nối mới (blocking)
-                # Tạo một luồng mới để xử lý client này, giải phóng vòng lặp
-                t = threading.Thread(target=handle_client, args=(conn, addr), daemon=True)
-                t.start()
+                conn, addr = s.accept()
+                threading.Thread(target=handle_client, args=(conn, addr), daemon=True).start()
             except KeyboardInterrupt:
-                print("Đang tắt server...")
-                break # Thoát vòng lặp nếu nhấn Ctrl+C
+                print("🛑 Đang tắt server...")
+                break
             except Exception as e:
-                print(f"Lỗi accept_loop: {e}")
+                print(f"⚠️ Lỗi accept_loop: {e}")
                 traceback.print_exc()
-                time.sleep(0.1)
+                time.sleep(0.2)
 
-if __name__ == '__main__':
-    accept_loop() # Chạy server
-# ...existing code...
+if __name__ == "__main__":
+    try:
+        accept_loop()
+    except KeyboardInterrupt:
+        print("🛑 Đang tắt server...")

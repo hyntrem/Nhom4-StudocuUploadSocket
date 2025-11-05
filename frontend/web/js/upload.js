@@ -1,14 +1,8 @@
-<<<<<<< HEAD
-// =============================
-// 📂 FILE UPLOAD MODULE (DEMO VERSION)
-// =============================
+// =============================================
+// 🚀 UPLOAD LOGIC (Socket.IO TCP Bridge)
+// =============================================
 
-// --- DOM Elements ---
-=======
-// Xử lý upload file qua socket, gửi chunk, pause/resume
-
-// ===== Upload UI Logic =====
->>>>>>> 88f8cf1edb4805094d39c53b5770d1206b451b7f
+// ===== DOM Elements =====
 const dropZone = document.getElementById("dropZone");
 const fileInput = document.getElementById("fileInput");
 const browseFile = document.getElementById("browseFile");
@@ -21,230 +15,251 @@ const stopBtn = document.getElementById("stopBtn");
 const progressBar = document.getElementById("progress");
 const statusText = document.getElementById("statusText");
 
-<<<<<<< HEAD
-// --- State Variables ---
+const visibilityEl = document.getElementById("visibility");
+const tagsEl = document.getElementById("tags");
+const descriptionEl = document.getElementById("description");
+
+// ===== State Variables =====
 let selectedFile = null;
-let uploadProgress = 0;
-let uploadInterval = null;
-let isPaused = false;
-let isUploading = false;
+let socket = null; // Đây sẽ là socket.io
+let uploadState = {
+    file: null,
+    upload_id: null,
+    offset: 0,
+    chunk_size: 65536,
+    isPaused: false,
+    isStopped: false,
+};
 
-// =============================
-// 🖱️ Drag & Drop File Logic
-// =============================
-=======
-let selectedFile = null;
-let uploadProgress = 0;
-let isPaused = false;
-let uploadInterval = null;
-
-// ====== Drag & Drop ======
->>>>>>> 88f8cf1edb4805094d39c53b5770d1206b451b7f
-dropZone.addEventListener("dragover", (e) => {
-  e.preventDefault();
-  dropZone.classList.add("dragover");
-});
-
-dropZone.addEventListener("dragleave", () => {
-  dropZone.classList.remove("dragover");
-});
-
-dropZone.addEventListener("drop", (e) => {
-  e.preventDefault();
-  dropZone.classList.remove("dragover");
-<<<<<<< HEAD
-  const file = e.dataTransfer.files[0];
-  handleFileSelection(file);
-});
-
-// =============================
-// 📁 File Selection via Input
-// =============================
+// =============================================
+// 🎨 UI & Drag/Drop Events
+// =============================================
+dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("dragover"); });
+dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+dropZone.addEventListener("drop", (e) => { e.preventDefault(); dropZone.classList.remove("dragover"); handleFileSelect(e.dataTransfer.files[0]); });
 browseFile.addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", (e) => handleFileSelect(e.target.files[0]));
 
-fileInput.addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  handleFileSelection(file);
-});
-
-function handleFileSelection(file) {
-  if (!file) return;
-  selectedFile = file;
-  dropZone.innerHTML = `<p>📄 <strong>${file.name}</strong> (${(file.size / 1024 / 1024).toFixed(2)} MB)</p>`;
-  statusText.textContent = "Tệp đã sẵn sàng để tải lên.";
-  resetProgress();
+function handleFileSelect(file) {
+    if (!file) return;
+    selectedFile = file;
+    uploadState.upload_id = `${Date.now()}_${file.name}`;
+    dropZone.innerHTML = `<p>📄 ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</p>`;
+    resetUI();
+    startBtn.disabled = false;
 }
 
-// =============================
-// ▶️ Start Upload (Demo Simulation)
-// =============================
-startBtn.addEventListener("click", () => {
-  if (!selectedFile) {
-    alert("⚠️ Vui lòng chọn tệp để tải lên!");
-    return;
-  }
-  if (isUploading) return;
-
-  isUploading = true;
-  uploadProgress = 0;
-  updateButtons("start");
-  statusText.textContent = "Đang tải lên...";
-
-  // Giả lập tiến trình upload
-  uploadInterval = setInterval(() => {
-    if (isPaused) return;
-
-    uploadProgress += 2; // tăng 2% mỗi lần
-    updateProgress(uploadProgress);
-
-    if (uploadProgress >= 100) {
-      completeUpload();
-=======
-  selectedFile = e.dataTransfer.files[0];
-  dropZone.innerHTML = `<p>📄 ${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</p>`;
-});
-
-browseFile.addEventListener("click", () => fileInput.click());
-fileInput.addEventListener("change", (e) => {
-  selectedFile = e.target.files[0];
-  dropZone.innerHTML = `<p>📄 ${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</p>`;
-});
-
-// ====== Upload Control Logic ======
-startBtn.addEventListener("click", () => {
-  if (!selectedFile) {
-    alert("Vui lòng chọn tệp để upload!");
-    return;
-  }
-  uploadProgress = 0;
-  startBtn.disabled = true;
-  pauseBtn.disabled = false;
-  stopBtn.disabled = false;
-  statusText.textContent = "Đang tải lên...";
-  
-  // giả lập upload (demo)
-  uploadInterval = setInterval(() => {
-    if (!isPaused) {
-      uploadProgress += 2;
-      progressBar.style.width = uploadProgress + "%";
-      if (uploadProgress >= 100) {
-        clearInterval(uploadInterval);
-        statusText.textContent = "✅ Upload hoàn tất!";
-        startBtn.disabled = false;
-        pauseBtn.disabled = true;
-        resumeBtn.disabled = true;
-        stopBtn.disabled = true;
-      }
->>>>>>> 88f8cf1edb4805094d39c53b5770d1206b451b7f
-    }
-  }, 150);
-});
-
-<<<<<<< HEAD
-// =============================
-// ⏸ Pause / ▶️ Resume / ⛔ Stop
-// =============================
+// =============================================
+// 🕹️ Control Button Events
+// =============================================
+startBtn.addEventListener("click", startUpload);
 pauseBtn.addEventListener("click", () => {
-  if (!isUploading) return;
-  isPaused = true;
-  updateButtons("pause");
-  statusText.textContent = "⏸ Upload đã tạm dừng.";
+    uploadState.isPaused = true;
+    // Gửi lệnh pause tới server TCP (qua cầu nối)
+    sendJsonMessage({ action: "pause", upload_id: uploadState.upload_id });
 });
-
 resumeBtn.addEventListener("click", () => {
-  if (!isUploading) return;
-  isPaused = false;
-  updateButtons("resume");
-  statusText.textContent = "▶️ Tiếp tục upload...";
+    uploadState.isPaused = false;
+    // Gửi lệnh resume và kích hoạt lại sendChunk
+    sendJsonMessage({ action: "resume", upload_id: uploadState.upload_id });
+    sendChunk(); 
 });
-
-stopBtn.addEventListener("click", stopUpload);
-
-function stopUpload() {
-  clearInterval(uploadInterval);
-  isUploading = false;
-  isPaused = false;
-  resetProgress();
-  updateButtons("stop");
-  statusText.textContent = "⛔ Upload đã dừng.";
-}
-
-// =============================
-// 📊 UI Helper Functions
-// =============================
-function updateProgress(percent) {
-  const safePercent = Math.min(percent, 100);
-  progressBar.style.width = `${safePercent}%`;
-  statusText.textContent = `Đang tải lên... ${safePercent.toFixed(1)}%`;
-}
-
-function completeUpload() {
-  clearInterval(uploadInterval);
-  uploadProgress = 100;
-  isUploading = false;
-  updateProgress(100);
-  updateButtons("complete");
-  statusText.textContent = "✅ Upload hoàn tất!";
-}
-
-function resetProgress() {
-  uploadProgress = 0;
-  progressBar.style.width = "0%";
-}
-
-function updateButtons(state) {
-  switch (state) {
-    case "start":
-      startBtn.disabled = true;
-      pauseBtn.disabled = false;
-      resumeBtn.disabled = true;
-      stopBtn.disabled = false;
-      break;
-    case "pause":
-      pauseBtn.disabled = true;
-      resumeBtn.disabled = false;
-      break;
-    case "resume":
-      pauseBtn.disabled = false;
-      resumeBtn.disabled = true;
-      break;
-    case "complete":
-    case "stop":
-      startBtn.disabled = false;
-      pauseBtn.disabled = true;
-      resumeBtn.disabled = true;
-      stopBtn.disabled = true;
-      break;
-    default:
-      startBtn.disabled = false;
-      pauseBtn.disabled = true;
-      resumeBtn.disabled = true;
-      stopBtn.disabled = true;
-  }
-}
-=======
-pauseBtn.addEventListener("click", () => {
-  isPaused = true;
-  pauseBtn.disabled = true;
-  resumeBtn.disabled = false;
-  statusText.textContent = "⏸ Tạm dừng upload...";
-});
-
-resumeBtn.addEventListener("click", () => {
-  isPaused = false;
-  pauseBtn.disabled = false;
-  resumeBtn.disabled = true;
-  statusText.textContent = "▶️ Tiếp tục upload...";
-});
-
 stopBtn.addEventListener("click", () => {
-  clearInterval(uploadInterval);
-  uploadProgress = 0;
-  progressBar.style.width = "0%";
-  statusText.textContent = "⛔ Upload đã dừng!";
-  startBtn.disabled = false;
-  pauseBtn.disabled = true;
-  resumeBtn.disabled = true;
-  stopBtn.disabled = true;
+    uploadState.isStopped = true;
+    if (socket) {
+        // Gửi lệnh stop và ngắt kết nối
+        sendJsonMessage({ action: "stop", upload_id: uploadState.upload_id });
+        socket.disconnect(); 
+    }
+    resetUI();
+    setStatus("⛔ Đã dừng upload.", "error");
 });
->>>>>>> 88f8cf1edb4805094d39c53b5770d1206b451b7f
+
+// =============================================
+// SOCKET.IO & UPLOAD LOGIC (SỬA LẠI)
+// =============================================
+
+/**
+ * 1. Bắt đầu quá trình: Kết nối Socket.IO
+ */
+async function startUpload() {
+    if (!selectedFile) { setStatus("Vui lòng chọn tệp!", "error"); return; }
+    if (!isLoggedIn()) { setStatus("Vui lòng đăng nhập để upload!", "error"); return; }
+
+    setStatus("Đang kết nối tới cầu nối...", "info");
+    startBtn.disabled = true;
+
+    // Khởi tạo trạng thái
+    uploadState.file = selectedFile;
+    uploadState.offset = 0;
+    uploadState.isPaused = false;
+    uploadState.isStopped = false;
+
+    // Kết nối tới Socket.IO server (cổng 5000, cùng với Flask)
+    // URL này đã bao gồm /socket.io/ theo mặc định
+    connectToSocketIO("http://localhost:5000");
+}
+
+/**
+ * 2. Kết nối Socket.IO (thay vì WebSocket)
+ */
+function connectToSocketIO(url) {
+    socket = io(url);
+
+    socket.on("connect", () => {
+        setStatus("✅ Kết nối thành công. Đang gửi metadata...", "info");
+        sendStartMessage();
+    });
+
+    // Lắng nghe phản hồi từ server TCP (đã được chuyển tiếp)
+    socket.on("tcp_response", (data) => {
+        handleSocketMessage(data);
+    });
+
+    socket.on("connect_error", (err) => {
+        console.error("Lỗi Socket.IO:", err);
+        setStatus("Lỗi kết nối máy chủ (Socket.IO Error).", "error");
+        resetUI();
+    });
+
+    socket.on("disconnect", () => {
+        if (!uploadState.isStopped) {
+            setStatus("Mất kết nối máy chủ.", "error");
+            resetUI();
+        }
+    });
+}
+
+/** Helper: Gửi tin nhắn JSON qua cầu nối */
+function sendJsonMessage(obj) {
+    if (socket && socket.connected) {
+        socket.emit('tcp_message', obj);
+    }
+}
+
+/** Helper: Gửi tin nhắn Bytes (chunk) qua cầu nối */
+function sendBytes(chunk) {
+    if (socket && socket.connected) {
+        socket.emit('tcp_message', chunk);
+    }
+}
+
+/**
+ * 3. Gửi thông tin bắt đầu (Metadata)
+ */
+function sendStartMessage() {
+    const token = localStorage.getItem("token"); 
+    const tagsArray = tagsEl.value.split(',').map(t => t.trim()).filter(t => t);
+
+    const message = {
+        action: "start",
+        upload_id: uploadState.upload_id,
+        filename: uploadState.file.name,
+        filesize: uploadState.file.size,
+        chunk_size: uploadState.chunk_size,
+        metadata: {
+            token: token,
+            description: descriptionEl.value,
+            visibility: visibilityEl.value,
+            tags: tagsArray
+        }
+    };
+    sendJsonMessage(message); // Gửi qua cầu nối
+}
+
+/**
+ * 4. Xử lý phản hồi từ Server (Đã chuyển tiếp qua Socket.IO)
+ */
+function handleSocketMessage(data) {
+    if (data.status !== "ok") {
+        setStatus(`Lỗi từ server: ${data.reason}`, "error");
+        resetUI();
+        socket.disconnect();
+        return;
+    }
+
+    // Server phản hồi 'start' OK
+    if (data.offset !== undefined && uploadState.offset === 0) {
+        uploadState.offset = data.offset;
+        uploadState.chunk_size = data.chunk_size || uploadState.chunk_size;
+
+        setStatus("Đang bắt đầu upload...", "info");
+        pauseBtn.disabled = false;
+        stopBtn.disabled = false;
+
+        sendChunk(); 
+    }
+
+    // Server phản hồi 'chunk' OK (ACK)
+    else if (data.offset !== undefined) {
+        updateProgress(data.offset, uploadState.file.size);
+        uploadState.offset = data.offset;
+
+        if (data.offset < uploadState.file.size) {
+            sendChunk(); // Gửi chunk tiếp
+        } else {
+            setStatus("✅ Upload hoàn tất! Đang xử lý...", "success");
+            progressBar.style.width = "100%";
+            resetUI();
+            socket.disconnect();
+            setTimeout(() => window.location.href = "documents.html", 1500); // Sửa: Về document.html
+        }
+    }
+}
+
+/**
+ * 5. Vòng lặp gửi Chunk (phần chính)
+ */
+async function sendChunk() {
+    if (uploadState.isPaused || uploadState.isStopped || !socket || !socket.connected) {
+        if(uploadState.isPaused) {
+            setStatus("⏸ Đã tạm dừng.", "info");
+            pauseBtn.disabled = true;
+            resumeBtn.disabled = false;
+        }
+        return; 
+    }
+
+    pauseBtn.disabled = false;
+    resumeBtn.disabled = true;
+    setStatus(`Đang tải... ${((uploadState.offset / uploadState.file.size) * 100).toFixed(0)}%`, "info");
+
+    const start = uploadState.offset;
+    const end = Math.min(start + uploadState.chunk_size, uploadState.file.size);
+    const chunk = uploadState.file.slice(start, end);
+    const chunkLength = chunk.size;
+
+    if (chunkLength === 0) {
+        return;
+    }
+
+    // 1. Gửi Header (JSON)
+    const header = {
+        action: "chunk",
+        upload_id: uploadState.upload_id,
+        offset: start,
+        length: chunkLength,
+    };
+    sendJsonMessage(header);
+
+    // 2. Gửi Data (Binary)
+    sendBytes(chunk);
+}
+
+// =Cập nhật UI
+function updateProgress(loaded, total) {
+    const percent = total > 0 ? (loaded / total) * 100 : 0;
+    progressBar.style.width = percent + "%";
+}
+
+function setStatus(message, type = "info") {
+    statusText.textContent = message;
+    statusText.className = `status-text ${type}`; // info, success, error
+}
+
+function resetUI() {
+    startBtn.disabled = false;
+    pauseBtn.disabled = true;
+    resumeBtn.disabled = true;
+    stopBtn.disabled = true;
+}
