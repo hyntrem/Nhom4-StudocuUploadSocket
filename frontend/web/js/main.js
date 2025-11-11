@@ -54,7 +54,7 @@ function setupGlobalUI() {
 window.addEventListener("DOMContentLoaded", () => {
     // 1. Chạy hàm setup nút (Đăng nhập/Đăng ký/Đăng xuất)
     setupGlobalUI();
-
+    loadHomepageFeed();
     // 2. Xử lý tìm kiếm (code cũ của bạn)
     const searchBtn = document.getElementById("searchBtn");
     if (searchBtn) {
@@ -190,5 +190,63 @@ async function downloadAndPreview(docId, filename) {
     } catch (err) {
         console.error("Lỗi khi tải/xem trước tài liệu:", err);
         alert(`Không thể tải tài liệu: ${err.message}`);
+    }
+}
+
+async function loadHomepageFeed() {
+    const uploadGrid = document.getElementById("recent-upload-grid");
+    if (uploadGrid) {
+        try {
+            const data = await apiRequest("/documents/recent-public", "GET", null, false);
+            if (data.documents && data.documents.length > 0) {
+                uploadGrid.innerHTML = ""; 
+                data.documents.forEach(doc => {
+                    const docCard = `
+                        <div class="doc-card" onclick="viewDocument(this)" data-id="${doc.id}">
+                            <h3>${doc.filename}</h3>
+                            <p>Người đăng: ${doc.owner_name || 'Không rõ'}</p>
+                            <p>Ngày tải: ${doc.created_at}</p>
+                        </div>
+                    `;
+                    uploadGrid.innerHTML += docCard;
+                });
+            } else {
+                uploadGrid.innerHTML = "<p>Chưa có tài liệu public nào.</p>";
+            }
+        } catch (error) {
+            console.error("Lỗi tải recent uploads:", error);
+            uploadGrid.innerHTML = "<p>Không thể tải tài liệu.</p>";
+        }
+    }
+ 
+    const viewGrid = document.getElementById("recent-view-grid");
+    if (viewGrid) { 
+        if (!isLoggedIn()) {  
+             viewGrid.innerHTML = '<p><a href="login.html">Đăng nhập</a> để xem lịch sử của bạn.</p>';
+        } else { 
+            try { 
+                const data = await getRecentlyViewed();  
+                
+                if (data.documents && data.documents.length > 0) {
+                    viewGrid.innerHTML = "";  
+                    
+                    data.documents.forEach(doc => {
+                        const docCard = `
+                            <div class="doc-card" onclick="viewDocument(this)" data-id="${doc.id}">
+                                <h3>${doc.filename}</h3>
+                                <p>Người đăng: ${doc.owner_name || 'Không rõ'}</p>
+                                <p style="font-weight: bold;">Vừa xem gần đây</p> 
+                            </div>
+                        `;
+                        viewGrid.innerHTML += docCard;
+                    });
+                } else {
+                    viewGrid.innerHTML = "<p>Bạn chưa xem tài liệu nào.</p>";
+                }
+            } catch (error) {
+                console.error("Lỗi tải recent views:", error);
+                viewGrid.innerHTML = "<p>Không thể tải lịch sử xem.</p>";
+            }
+        }
     }
 }

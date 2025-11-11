@@ -1,48 +1,207 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>Cài đặt | Studocu</title>
-  <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8">
+  <title>Cài đặt | Studocu</title>
+  <link rel="stylesheet" href="css/style.css">
+  
+  <style>
+    .settings-form {
+        background-color: #fff;
+        padding: 25px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .settings-form h3 {
+        margin-top: 0;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+    }
+    .settings-form label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+        font-size: 0.9em;
+    }
+    .settings-form input[type="text"],
+    .settings-form input[type="email"],
+    .settings-form input[type="password"] {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 20px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box; /* Fix padding issue */
+    }
+    .settings-form input[type="email"][disabled] {
+        background-color: #f4f4f4;
+        color: #777;
+        cursor: not-allowed;
+    }
+    .settings-form .btn-save {
+        background-color: #007bff;
+        color: white;
+        padding: 12px 18px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    .settings-form .btn-save:hover {
+        background-color: #0056b3;
+    }
+    .settings-form .msg {
+        margin-top: 15px;
+        font-size: 0.95em;
+        display: none; /* Ẩn ban đầu */
+    }
+    .msg.success { display: block; color: green; }
+    .msg.error { display: block; color: red; }
+  </style>
 </head>
 <body>
-  <header class="header">
-    <div class="logo">
-        <img src="assets/logo.jpg" alt="Studocu Logo">
-        <span>Studocu</span>
-    </div>
-    <div class="user-actions">
-        <button id="loginBtn" onclick="window.location.href='login.html'">Đăng nhập</button>
-        <button id="registerBtn" onclick="window.location.href='register.html'">Đăng ký</button>
-        
-        <button id="logoutBtn" class="hidden">Đăng xuất</button>
-    </div>
+  <header class="header">
+    <div class="logo">
+        <img src="assets/logo.jpg" alt="Studocu Logo">
+        <span>Studocu</span>
+    </div>
+    <div class="user-actions">
+        <button id="loginBtn" onclick="window.location.href='login.html'">Đăng nhập</button>
+        <button id="registerBtn" onclick="window.location.href='register.html'">Đăng ký</button>
+        <button id="logoutBtn" class="hidden">Đăng xuất</button>
+    </div>
 </header>
 
-  <aside class="sidebar">
-    <h3>Tài khoản</h3>
-    <a href="upload.html" class="btn-new">+ Mới</a>
-    <ul>
-        <li><a href="index.html">🏠 Trang chủ</a></li>
-        <li><a href="documents.html">📁 Kho lưu trữ của tôi</a></li> <li><a href="recent.html">🕓 Nội dung gần đây</a></li>
-        <li><a href="trash.html">🗑️ Thùng rác</a></li>
-        <li><a href="favorites.html">⭐ Bộ nhớ</a></li>
-    </ul>
-    <hr>
-    <ul>
-        <li><a href="settings.html">⚙️ Cài đặt</a></li>
-    </ul>
+  <aside class="sidebar">
+    <h3>Tài khoản</h3>
+    <a href="upload.html" class="btn-new">+ Mới</a>
+    <ul>
+        <li><a href="index.html">🏠 Trang chủ</a></li>
+        <li><a href="document.html">📁 Kho lưu trữ của tôi</a></li> 
+        <li><a href="recent.html">🕓 Nội dung gần đây</a></li>
+        <li><a href="trash.html">🗑️ Thùng rác</a></li>
+        <li><a href="favorites.html">⭐ Bộ nhớ</a></li>
+    </ul>
+    <hr>
+    <ul>
+        <li><a href="settings.html" class="active">⚙️ Cài đặt</a></li>     </ul>
 </aside>
 
-  <main class="content">
-    <h2>⚙️ Cài đặt tài khoản</h2>
-    <p>Thay đổi mật khẩu, ngôn ngữ, hoặc thông tin cá nhân tại đây.</p>
-  </main>
+    <main class="content">
+    <h2>⚙️ Cài đặt tài khoản</h2>
+    
+    <div class="settings-form">
+      <h3>Thông tin cá nhân</h3>
+      <form id="infoForm">
+        <label for="infoName">Họ và tên:</label>
+        <input type="text" id="infoName" name="name" required placeholder="Đang tải...">
+        
+        <label for="infoEmail">Email (Không thể thay đổi):</label>
+        <input type="email" id="infoEmail" name="email" disabled placeholder="Đang tải...">
+        
+        <button type="submit" class="btn-save">Lưu thay đổi</button>
+        <p class="msg" id="infoMsg"></p>
+      </form>
+    </div>
+    
+    <div class="settings-form">
+      <h3>Đổi mật khẩu</h3>
+      <form id="passwordForm">
+        <label for="passOld">Mật khẩu cũ:</label>
+        <input type="password" id="passOld" required>
+        
+        <label for="passNew">Mật khẩu mới (ít nhất 6 ký tự):</label>
+        <input type="password" id="passNew" minlength="6" required>
+        
+        <label for="passConfirm">Xác nhận mật khẩu mới:</label>
+        <input type="password" id="passConfirm" minlength="6" required>
+        
+        <button type="submit" class="btn-save">Đổi mật khẩu</button>
+        <p class="msg" id="passMsg"></p>
+      </form>
+    </div>
+  </main>
 
-  <footer class="footer">
-    <p>Studocu Việt Nam © 2025</p>
-  </footer>
-  <script src="js/api.js"></script>
-  <script src="js/main.js"></script>
+    <footer class="footer">
+    <p>Studocu Việt Nam © 2025</p>
+  </footer>
+
+    <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        // 1. Kiểm tra đăng nhập
+        if (!isLoggedIn()) {
+            window.location.href = "login.html";
+            return;
+        }
+
+        const infoForm = document.getElementById("infoForm");
+        const passForm = document.getElementById("passwordForm");
+        const infoMsg = document.getElementById("infoMsg");
+        const passMsg = document.getElementById("passMsg");
+
+        // 2. Tải thông tin user hiện tại
+        const infoNameEl = document.getElementById("infoName");
+        const infoEmailEl = document.getElementById("infoEmail");
+        
+        // (Hàm getMe() từ api.js)
+        getMe().then(data => {
+            infoNameEl.value = data.name;
+            infoEmailEl.value = data.email;
+        }).catch(err => {
+            infoMsg.textContent = "Không thể tải thông tin user: " + err.message;
+            infoMsg.className = "msg error";
+        });
+
+        // 3. Xử lý Form thông tin (Cập nhật tên)
+        infoForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const newName = infoNameEl.value.trim();
+            infoMsg.textContent = "Đang cập nhật...";
+            infoMsg.className = "msg";
+
+            try {
+                // (Hàm updateMe() từ api.js)
+                const data = await updateMe(newName);
+                infoMsg.textContent = data.message || "Cập nhật thành công!";
+                infoMsg.className = "msg success";
+            } catch (err) {
+                infoMsg.textContent = err.message;
+                infoMsg.className = "msg error";
+            }
+        });
+
+        // 4. Xử lý Form mật khẩu
+        passForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const oldPass = document.getElementById("passOld").value;
+            const newPass = document.getElementById("passNew").value;
+            const confirmPass = document.getElementById("passConfirm").value;
+            
+            passMsg.textContent = "Đang xử lý...";
+            passMsg.className = "msg";
+
+            if (newPass !== confirmPass) {
+                passMsg.textContent = "Mật khẩu mới không khớp!";
+                passMsg.className = "msg error";
+                return;
+            }
+
+            try {
+                // (Hàm changePassword() từ api.js)
+                const data = await changePassword(oldPass, newPass);
+                passMsg.textContent = data.message || "Đổi mật khẩu thành công!";
+                passMsg.className = "msg success";
+                passForm.reset(); // Xóa các trường
+            } catch (err) {
+                passMsg.textContent = err.message; // apiRequest sẽ tự báo lỗi (vd: Mật khẩu cũ không đúng)
+                passMsg.className = "msg error";
+            }
+        });
+    });
+  </script>
 </body>
 </html>

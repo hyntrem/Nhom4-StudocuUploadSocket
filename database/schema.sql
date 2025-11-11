@@ -52,3 +52,31 @@ CREATE TABLE document_tags (
     INDEX idx_doc_id (document_id),
     INDEX idx_tag_id (tag_id)
 );
+
+CREATE TABLE user_favorites (
+    user_id INT NOT NULL,
+    document_id INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    PRIMARY KEY (user_id, document_id),
+    
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
+    
+    INDEX idx_user_fav (user_id),
+    INDEX idx_doc_fav (document_id)
+);
+
+CREATE TABLE user_document_views (
+    user_id INT NOT NULL,
+    document_id INT NOT NULL,
+    
+    last_viewed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    PRIMARY KEY (user_id, document_id),
+    
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
+
+    INDEX idx_user_views (user_id, last_viewed_at DESC)
+);

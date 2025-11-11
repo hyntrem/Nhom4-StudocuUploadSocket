@@ -4,9 +4,40 @@
   <meta charset="UTF-8">
   <title>Thùng rác | Studocu</title>
   <link rel="stylesheet" href="css/style.css">
+  
+  <style>
+    .trash-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 15px;
+    }
+    .trash-item h3 {
+        margin: 0;
+        flex: 1;
+    }
+    .trash-item .btn-restore {
+        background-color: #28a745; /* Màu xanh lá */
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-right: 10px;
+    }
+    .trash-item .btn-delete-perm {
+        background-color: #dc3545; /* Màu đỏ */
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+  </style>
+
 </head>
 <body>
-  <header class="header">
+    <header class="header">
     <div class="logo">
         <img src="assets/logo.jpg" alt="Studocu Logo">
         <span>Studocu</span>
@@ -14,19 +45,18 @@
     <div class="user-actions">
         <button id="loginBtn" onclick="window.location.href='login.html'">Đăng nhập</button>
         <button id="registerBtn" onclick="window.location.href='register.html'">Đăng ký</button>
-        
         <button id="logoutBtn" class="hidden">Đăng xuất</button>
     </div>
 </header>
 
-  <aside class="sidebar">
+    <aside class="sidebar">
     <h3>Tài khoản</h3>
     <a href="upload.html" class="btn-new">+ Mới</a>
     <ul>
         <li><a href="index.html">🏠 Trang chủ</a></li>
-        <li><a href="documents.html">📁 Kho lưu trữ của tôi</a></li> <li><a href="recent.html">🕓 Nội dung gần đây</a></li>
-        <li><a href="trash.html">🗑️ Thùng rác</a></li>
-        <li><a href="favorites.html">⭐ Bộ nhớ</a></li>
+        <li><a href="documents.html">📁 Kho lưu trữ của tôi</a></li> 
+        <li><a href="recent.html">🕓 Nội dung gần đây</a></li>
+        <li><a href="trash.html" class="active">🗑️ Thùng rác</a></li>         <li><a href="favorites.html">⭐ Bộ nhớ</a></li>
     </ul>
     <hr>
     <ul>
@@ -34,15 +64,90 @@
     </ul>
 </aside>
 
-  <main class="content">
+    <main class="content">
     <h2>🗑️ Thùng rác</h2>
-    <p>Các tài liệu đã xóa tạm thời sẽ hiển thị tại đây.</p>
+    <p>Tài liệu sẽ bị xóa vĩnh viễn sau 30 ngày.</p>
+
+        <div class="doc-grid" id="trash-container">
+        <p>Đang tải thùng rác...</p>
+    </div>
   </main>
 
-  <footer class="footer">
+    <footer class="footer">
     <p>Studocu Việt Nam © 2025</p>
   </footer>
-  <script src="js/api.js"></script>
+
+    <script src="js/api.js"></script>
   <script src="js/main.js"></script>
+
+    <script>
+    const trashContainer = document.getElementById("trash-container"); 
+    async function loadTrash() {
+        if (!isLoggedIn()) {
+            trashContainer.innerHTML = '<p><a href="login.html">Đăng nhập</a> để xem thùng rác.</p>';
+            return;
+        }
+
+        try { 
+            const data = await getTrashDocuments();
+            
+            if (data.documents && data.documents.length > 0) {
+                trashContainer.innerHTML = "";  
+                 
+                data.documents.forEach(doc => {
+                    const docCard = `
+                        <div class="doc-card trash-item">
+                            <h3>${doc.filename}</h3>
+                            <div class="doc-card-actions">
+                                <button class="btn-restore" data-id="${doc.id}">Khôi phục</button>
+                                <button class="btn-delete-perm" data-id="${doc.id}">Xóa vĩnh viễn</button>
+                            </div>
+                        </div>
+                    `;
+                    trashContainer.innerHTML += docCard;
+                });
+            } else {
+                trashContainer.innerHTML = "<p>Thùng rác của bạn trống.</p>";
+            }
+        } catch (error) {
+            console.error("Lỗi tải thùng rác:", error);
+            trashContainer.innerHTML = "<p>Không thể tải thùng rác.</p>";
+        }
+    }
+ 
+    trashContainer.addEventListener('click', async (e) => {
+        const restoreBtn = e.target.closest('.btn-restore');
+        const deleteBtn = e.target.closest('.btn-delete-perm');
+ 
+        if (restoreBtn) {
+            const docId = restoreBtn.dataset.id;
+            if (confirm("Bạn có muốn khôi phục tài liệu này?")) {
+                try {
+                    await restoreDocument(docId);  
+                    alert("Khôi phục thành công!");
+                    loadTrash();  
+                } catch (err) {
+                    alert("Lỗi: " + err.message);
+                }
+            }
+        }
+        
+        if (deleteBtn) {
+            const docId = deleteBtn.dataset.id;
+            if (confirm("CẢNH BÁO: Bạn có chắc chắn muốn XÓA VĨNH VIỄN file này? Hành động này không thể hoàn tác.")) {
+                try {
+                    await permanentDeleteDocument(docId);  
+                    alert("Đã xóa vĩnh viễn!");
+                    loadTrash();  
+                } catch (err) {
+                    alert("Lỗi: " + err.message);
+                }
+            }
+        }
+    });
+
+    loadTrash();
+  </script>
+
 </body>
 </html>

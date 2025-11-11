@@ -220,11 +220,41 @@ async function reportDocument(doc_id, reason) {
 }
 
 /* ========== SOCKET UPLOAD TRIGGER ========== */
-/**
- * getSocketUploadURL()
- * - backend trả { socket_url: "ws://..." } hoặc { socket_url: "wss://..." }
- * - caller (upload.js) sẽ dùng URL này để open WebSocket / TCP proxy
- */
+/* ========== THÙNG RÁC (TRASH) ========== */
+
+async function trashDocument(doc_id) {
+    // Dùng POST
+    return apiRequest(`/documents/${doc_id}/trash`, "POST");
+}
+
+async function restoreDocument(doc_id) {
+    return apiRequest(`/documents/${doc_id}/restore`, "POST");
+}
+
+async function permanentDeleteDocument(doc_id) {
+    // Dùng DELETE
+    return apiRequest(`/documents/${doc_id}/permanent`, "DELETE");
+}
+
+async function getTrashDocuments() {
+    return apiRequest("/documents/trash", "GET");
+}
+
+/* ========== YÊU THÍCH (FAVORITES) ========== */
+
+async function toggleFavorite(doc_id) {
+    return apiRequest(`/documents/${doc_id}/favorite`, "POST");
+}
+
+async function getFavoriteDocuments() {
+    return apiRequest("/documents/favorites", "GET");
+}
+
+/* ========== NỘI DUNG GẦN ĐÂY (RECENT) ========== */
+
+async function getRecentlyViewed() {
+    return apiRequest("/documents/recently-viewed", "GET");
+}
 async function getSocketUploadURL() {
   try {
     const data = await apiRequest("/upload/trigger", "POST");
@@ -245,17 +275,16 @@ function isLoggedIn() {
   return !!localStorage.getItem(TOKEN_KEY);
 }
 
-/* ========== (TÙY CHỌN) EXPORT ========== */
-/*
-Nếu bạn chuyển sang ES modules (type="module"), bỏ comment phần export dưới đây
-và import các hàm bên trong auth.js/documents.js thay vì khai báo global.
-export {
-  apiRequest,
-  register, login, logout,
-  createDocumentMetadata, getDocuments, downloadDocument, deleteDocument, updateDocumentFile,
-  addComment, getComments, rateDocument, reportDocument,
-  getSocketUploadURL,
-  getCurrentUser, isLoggedIn
-};
-*/
-/* ========== KẾT THÚC FILE ========== */
+/* ========== USER SETTINGS ========== */
+
+async function getMe() { 
+    return apiRequest("/me", "GET");
+}
+
+async function updateMe(name) { 
+    return apiRequest("/me", "PUT", { name });
+}
+
+async function changePassword(old_password, new_password) { 
+    return apiRequest("/change-password", "POST", { old_password, new_password });
+}

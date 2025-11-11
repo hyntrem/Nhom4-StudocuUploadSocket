@@ -16,9 +16,6 @@ document.addEventListener("DOMContentLoaded", () => {
     addModalListeners(token);
 });
 
-/**
- * Gọi API GET /api/documents?user=true để lấy file của user
- */
 async function loadUserFiles(token) {
     const container = document.getElementById("file-list-container");
     const loadingText = document.getElementById("loading-text");
@@ -44,8 +41,7 @@ async function loadUserFiles(token) {
         const data = await response.json();
 
         if (response.ok) {
-            loadingText.classList.add("hidden"); // Ẩn "Đang tải..."
-            // Pass token forward so event handlers can authenticate (token may be null)
+            loadingText.classList.add("hidden"); 
             renderFiles(data.documents, token);
         } else {
             loadingText.textContent = `Lỗi: ${data.message}`;
@@ -56,9 +52,6 @@ async function loadUserFiles(token) {
     }
 }
 
-/**
- * Hiển thị danh sách file ra giao diện
- */
 function renderFiles(files, token) {
     const container = document.getElementById("file-list-container");
     container.innerHTML = ""; // Xóa sạch container
@@ -71,7 +64,7 @@ function renderFiles(files, token) {
     files.forEach(file => {
         const fileCard = document.createElement("div");
         fileCard.className = "doc-card"; // Tận dụng style có sẵn từ style.css
-
+        fileCard.dataset.id = file.id;
         // Chuyển mảng tags thành chuỗi (guard nếu tags undefined)
         const tagsString = (file.tags || []).join(', ');
 
@@ -94,6 +87,12 @@ function renderFiles(files, token) {
         const actions = document.createElement('div');
         actions.className = 'doc-card-actions';
 
+        const favClass = file.is_favorited ? 'favorited' : '';
+        const favBtn = document.createElement('button');
+        favBtn.className = `btn-action btn-favorite ${favClass}`;
+        favBtn.type = 'button';
+        favBtn.textContent = '⭐'; // Nút Yêu thích
+        favBtn.dataset.id = file.id;
         // Only show edit/delete actions if user is authenticated (token present)
         if (token) {
             // Create Edit button and set dataset safely
@@ -114,6 +113,7 @@ function renderFiles(files, token) {
             deleteBtn.textContent = '🗑️ Xóa';
             deleteBtn.dataset.id = file.id;
 
+            actions.appendChild(favBtn);
             actions.appendChild(editBtn);
             actions.appendChild(deleteBtn);
         }
@@ -127,62 +127,68 @@ function renderFiles(files, token) {
 
         container.appendChild(fileCard);
     });
-
-    // Sau khi render, gắn một lần listener (delegation) cho container
+ 
     addCardButtonListeners(token);
 }
-
-/**
- * Gắn sự kiện cho các nút Sửa/Xóa trên mỗi thẻ
- */
+ 
 function addCardButtonListeners(token) {
     const container = document.getElementById("file-list-container");
-
-    // Use event delegation: one listener for edit/delete actions
-    // Remove existing delegated listener if present (idempotent attach)
+ 
     if (container._hasDelegatedListener) return;
 
-    container.addEventListener('click', async (e) => {
+    container.addEventListener('click', async (e) => { 
         const editBtn = e.target.closest('.btn-edit');
         if (editBtn) {
             showEditModal(editBtn.dataset);
-            return;
-        }
-
+            return; 
+        } 
         const deleteBtn = e.target.closest('.btn-delete');
         if (deleteBtn) {
             const fileId = deleteBtn.dataset.id;
             if (!fileId) return;
-            if (confirm("Bạn có chắc chắn muốn xóa file này không? Hành động này không thể hoàn tác.")) {
-                try {
-                    const headers = {};
-                    if (token) headers['Authorization'] = `Bearer ${token}`;
-                    const response = await fetch(`${API_URL}/api/documents/${fileId}`, {
-                        method: "DELETE",
-                        headers
-                    });
-                    const data = await response.json();
+            
+            if (confirm("Bạn có chắc chắn muốn chuyển file này vào thùng rác không?")) {
+                try { 
+                    await trashDocument(fileId); 
                     
-                    if (response.ok) {
-                        alert("Xóa tài liệu thành công!");
-                        loadUserFiles(token); // Tải lại danh sách file
-                    } else {
-                        alert(`Lỗi: ${data.message}`);
-                    }
-                } catch (error) {
-                    alert("Lỗi kết nối khi xóa file.");
+                    alert("Đã chuyển vào thùng rác!"); 
+                    loadUserFiles(localStorage.getItem('token')); 
+                } catch (err) { 
+                    console.error("Lỗi khi chuyển vào thùng rác:", err);
                 }
             }
-            return;
+            return;  
+        }
+        const favBtn = e.target.closest('.btn-favorite');
+        if (favBtn) {
+            const docId = favBtn.dataset.id;
+            try { 
+                const data = await toggleFavorite(docId); 
+                
+                if (data.isFavorited) {
+                    favBtn.classList.add('favorited');
+                } else {
+                    favBtn.classList.remove('favorited');
+                }
+            } catch (err) {
+                alert("Lỗi: " + err.message);
+            }
+            return; 
+        }
+ 
+        const card = e.target.closest('.doc-card');
+        if (card) { 
+            if (typeof viewDocument === 'function') {
+                viewDocument(card);  
+            } else {
+                console.error("Hàm viewDocument() không tìm thấy.");
+            }
         }
     });
 
     container._hasDelegatedListener = true;
 }
 
-/**
- * Hiển thị modal và điền thông tin file vào form
- */
 function showEditModal(data) {
     // Điền dữ liệu từ file vào form trong modal
     document.getElementById("edit-id").value = data.id || '';

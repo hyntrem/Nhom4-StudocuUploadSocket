@@ -81,7 +81,24 @@ document_tags = db.Table('document_tags',
     db.Column('document_id', db.Integer, db.ForeignKey('documents.id'), primary_key=True),
     db.Column('tag_id', db.Integer, db.ForeignKey('tags.id'), primary_key=True)
 )
+class UserDocumentView(db.Model):
+    __tablename__ = 'user_document_views'
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    document_id = db.Column(db.Integer, db.ForeignKey('documents.id'), primary_key=True)
+    last_viewed_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('view_history', lazy='dynamic'))
+    document = db.relationship('Document', backref=db.backref('view_history', lazy='dynamic'))
 
+class UserFavorite(db.Model):
+    __tablename__ = 'user_favorites'
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    document_id = db.Column(db.Integer, db.ForeignKey('documents.id'), primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('favorites', lazy='dynamic'))
+    document = db.relationship('Document', backref=db.backref('favorited_by', lazy='dynamic'))
+    
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -106,6 +123,8 @@ class Document(db.Model):
     visibility = db.Column(db.Enum('public', 'private'), default='private')
     status = db.Column(db.String(50), default='uploaded')
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    
+    updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     tags = db.relationship('Tag', secondary=document_tags, lazy='subquery',
                            backref=db.backref('documents', lazy=True))
 
@@ -117,6 +136,24 @@ class Tag(db.Model):
 # ==========================================================
 # 🔐 JWT DECORATOR
 # ==========================================================
+def record_view(user, document): 
+    try: 
+        view = UserDocumentView.query.filter_by(
+            user_id=user.id, 
+            document_id=document.id
+        ).first()
+        
+        if view: 
+            view.last_viewed_at = datetime.datetime.utcnow()
+        else: 
+            view = UserDocumentView(user_id=user.id, document_id=document.id)
+            db.session.add(view)
+         
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"Lỗi khi ghi lại lượt xem: {e}")
+
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -248,6 +285,29 @@ def reset_password():
     r.delete(f"otp:{email}")
     return jsonify({"message": "Password reset successfully"}), 200
 
+@app.route('/api/me', methods=['PUT'])
+@token_required
+def update_me(current_user):
+    """ MỚI: API để cập nhật tên người dùng """
+    data = request.get_json()
+    if not data or 'name' not in data:
+        return jsonify({'message': 'Thiếu tên (name)'}), 400
+    
+    name = data.get('name').strip()
+    if not name:
+        return jsonify({'message': 'Tên không được để trống'}), 400
+        
+    current_user.name = name
+    db.session.commit()
+     
+    return jsonify({
+        'message': 'Cập nhật thông tin thành công',
+        'user': {
+            'id': current_user.id,
+            'name': current_user.name,
+            'email': current_user.email
+        }
+    }), 200
 # ==========================================================
 # 📄 DOCUMENT APIs
 # ==========================================================
@@ -281,8 +341,10 @@ def create_document(current_user):
 @app.route('/api/documents', methods=['GET'])
 @token_required
 def list_documents(current_user):
+    fav_ids = {fav.document_id for fav in UserFavorite.query.filter_by(user_id=current_user.id).all()}
     query = Document.query.filter(
-        (Document.user_id == current_user.id) | (Document.visibility == 'public')
+    ((Document.user_id == current_user.id) | (Document.visibility == 'public')) &
+    (Document.status == 'uploaded')
     )
     docs = [{
         'id': d.id,
@@ -304,24 +366,57 @@ def download(current_user, doc_id):
         return jsonify({'message': 'Không tìm thấy tài liệu'}), 404
     if doc.user_id != current_user.id and doc.visibility == 'private':
         return jsonify({'message': 'Không có quyền truy cập'}), 403
+    record_view(current_user, doc)
     directory = os.path.join(app.config['UPLOAD_FOLDER'], os.path.dirname(doc.file_path))
     filename = os.path.basename(doc.file_path)
     return send_from_directory(directory, filename, as_attachment=True)
 
-
-@app.route('/api/documents/<int:doc_id>', methods=['DELETE'])
+@app.route('/api/documents/<int:doc_id>/trash', methods=['POST'])
 @token_required
-def delete_document(current_user, doc_id):
+def trash_document(current_user, doc_id):
+    """ Sửa: Chuyển file vào thùng rác (thay vì xóa) """
     doc = Document.query.get(doc_id)
     if not doc or doc.user_id != current_user.id:
         return jsonify({'message': 'Không có quyền xóa'}), 403
+
+    doc.status = 'trashed'  
+    db.session.commit()
+    return jsonify({'message': 'Đã chuyển vào thùng rác'}), 200
+
+@app.route('/api/documents/<int:doc_id>/restore', methods=['POST'])
+@token_required
+def restore_document(current_user, doc_id):
+    """ Mới: Khôi phục file từ thùng rác """
+    doc = Document.query.get(doc_id)
+    if not doc or doc.user_id != current_user.id:
+        return jsonify({'message': 'Không có quyền'}), 403
+
+    doc.status = 'uploaded'
+    db.session.commit()
+    return jsonify({'message': 'Khôi phục thành công'}), 200
+
+@app.route('/api/documents/<int:doc_id>/permanent', methods=['DELETE'])
+@token_required
+def permanent_delete_document(current_user, doc_id):
+    """ Mới: Xóa vĩnh viễn (logic của hàm delete cũ) """
+    doc = Document.query.get(doc_id)
+    if not doc or doc.user_id != current_user.id:
+        return jsonify({'message': 'Không có quyền xóa vĩnh viễn'}), 403
+ 
     abs_path = os.path.join(app.config['UPLOAD_FOLDER'], doc.file_path)
     if os.path.exists(abs_path):
-        os.remove(abs_path)
-        print(f"[Flask] 🗑️ File deleted: {abs_path}")
+        try: 
+            full_dir_path = os.path.dirname(abs_path)
+            os.remove(abs_path)
+            if not os.listdir(full_dir_path): 
+                os.rmdir(full_dir_path)
+            print(f"[Flask] 🗑️ File/Folder deleted: {full_dir_path}")
+        except Exception as e:
+            print(f"Lỗi xóa file vật lý: {e}")
+ 
     db.session.delete(doc)
     db.session.commit()
-    return jsonify({'message': 'Xóa tài liệu thành công'}), 200
+    return jsonify({'message': 'Xóa tài liệu vĩnh viễn thành công'}), 200
 
 # ==========================================================
 # 🚀 SOCKET TRIGGER
@@ -350,7 +445,7 @@ def get_document_detail(current_user, doc_id):
     # Kiểm tra quyền: Hoặc là chủ file, hoặc file là public
     if doc.user_id != current_user.id and doc.visibility == 'private':
         return jsonify({'message': 'Không có quyền truy cập'}), 403
-    
+    record_view(current_user, doc)
     return jsonify({
         'id': doc.id,
         'filename': doc.filename,
@@ -478,16 +573,117 @@ def handle_disconnect():
         except Exception: pass
         del client_tcp_sockets[sid]
     print(f'[SocketIO] ❎ Client {sid} đã ngắt kết nối (Trình duyệt).')
-
-
+@app.route('/api/documents/recent-public', methods=['GET'])
+def get_recent_public_documents():
+    """
+    API cho trang chủ: Lấy 2 tài liệu public mới nhất.
+    Không cần token.
+    """
+    try:
+        # Sắp xếp theo ngày tạo, mới nhất trước
+        # Lọc chỉ 'public'
+        # Lấy 2 kết quả
+        recent_docs = Document.query.filter_by(visibility='public') \
+                                    .order_by(Document.created_at.desc()) \
+                                    .limit(2).all()
+        
+        docs_list = [{
+            'id': d.id,
+            'filename': d.filename,
+            # Lấy tên người đăng
+            'owner_name': d.owner.name, 
+            # Định dạng ngày cho dễ đọc
+            'created_at': d.created_at.strftime('%d/%m/%Y') 
+        } for d in recent_docs]
+        
+        return jsonify({'documents': docs_list}), 200
+    
+    except Exception as e:
+        print(f"Lỗi /api/documents/recent-public: {e}")
+        return jsonify({'message': 'Lỗi máy chủ khi lấy tài liệu'}), 500
 # ==========================================================
-# 🏁 MAIN ENTRY (SỬA LẠI ĐỂ CHẠY SOCKETIO)
+# 📄 API (Vừa xem, Yêu thích, Thùng rác)
+# ==========================================================
+
+@app.route('/api/documents/recently-viewed', methods=['GET'])
+@token_required
+def get_recently_viewed(current_user): 
+    try: 
+        docs = Document.query \
+            .join(UserDocumentView, Document.id == UserDocumentView.document_id) \
+            .filter(UserDocumentView.user_id == current_user.id) \
+            .order_by(UserDocumentView.last_viewed_at.desc()) \
+            .limit(2).all()
+        
+        docs_list = [{
+            'id': d.id,
+            'filename': d.filename,
+            'owner_name': d.owner.name, 
+            'created_at': d.created_at.strftime('%d/%m/%Y') 
+        } for d in docs]
+        
+        return jsonify({'documents': docs_list}), 200
+    except Exception as e:
+        print(f"Lỗi /api/documents/recently-viewed: {e}")
+        return jsonify({'message': 'Lỗi máy chủ'}), 500
+
+@app.route('/api/documents/trash', methods=['GET'])
+@token_required
+def get_trash(current_user):
+    """ MỚI: Lấy danh sách file trong thùng rác """
+    trashed_docs = Document.query.filter_by(
+        user_id=current_user.id, 
+        status='trashed'
+    ).order_by(Document.updated_at.desc()).all()
+    
+    docs_list = [{ 'id': d.id, 'filename': d.filename } for d in trashed_docs]
+    return jsonify({'documents': docs_list}), 200
+
+@app.route('/api/documents/favorites', methods=['GET'])
+@token_required
+def get_favorites(current_user):
+    """ MỚI: Lấy danh sách file yêu thích """
+    fav_docs = Document.query \
+        .join(UserFavorite, Document.id == UserFavorite.document_id) \
+        .filter(UserFavorite.user_id == current_user.id) \
+        .order_by(UserFavorite.created_at.desc()).all()
+
+    docs_list = [{
+        'id': d.id,
+        'filename': d.filename,
+        'owner_name': d.owner.name,
+        'description': d.description
+    } for d in fav_docs]
+    
+    return jsonify({'documents': docs_list}), 200
+
+@app.route('/api/documents/<int:doc_id>/favorite', methods=['POST'])
+@token_required
+def toggle_favorite(current_user, doc_id):
+    """ MỚI: Bật/Tắt yêu thích (toggle) """
+    doc = Document.query.get(doc_id)
+    if not doc:
+        return jsonify({'message': 'Không tìm thấy tài liệu'}), 404
+
+    fav = UserFavorite.query.filter_by(
+        user_id=current_user.id, 
+        document_id=doc.id
+    ).first()
+    
+    if fav: 
+        db.session.delete(fav)
+        db.session.commit()
+        return jsonify({'message': 'Đã bỏ yêu thích', 'isFavorited': False}), 200
+    else: 
+        new_fav = UserFavorite(user_id=current_user.id, document_id=doc.id)
+        db.session.add(new_fav)
+        db.session.commit()
+        return jsonify({'message': 'Đã yêu thích', 'isFavorited': True}), 201
+# ==========================================================
+# 🏁 MAIN ENTRY 
 # ==========================================================
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    # app.run(debug=True, port=5000) # Dòng cũ
-
-    # Dòng mới: Chạy máy chủ qua SocketIO
     print("🚀 Khởi chạy Flask (API) và SocketIO (Cầu nối) trên cổng 5000...")
     socketio.run(app, debug=True, port=5000, allow_unsafe_werkzeug=True)
