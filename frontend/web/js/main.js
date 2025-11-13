@@ -1,7 +1,7 @@
 // ======================
 // Script chung: menu, sidebar, navigation
 // ======================
-
+window.API_URL = "http://127.0.0.1:5000";
 // Hàm này phải được gọi bởi TẤT CẢ các trang (trừ login/register)
 // Nó dựa vào file api.js (phải được tải trước)
 function setupGlobalUI() {
@@ -49,24 +49,91 @@ function setupGlobalUI() {
         if (logoutBtn) logoutBtn.classList.add("hidden");
     }
 }
-
-// Chạy hàm setup khi trang tải xong
-window.addEventListener("DOMContentLoaded", () => {
-    // 1. Chạy hàm setup nút (Đăng nhập/Đăng ký/Đăng xuất)
+ 
+window.addEventListener("DOMContentLoaded", () => { 
     setupGlobalUI();
     loadHomepageFeed();
-    // 2. Xử lý tìm kiếm (code cũ của bạn)
+    loadPublicDocuments();
     const searchBtn = document.getElementById("searchBtn");
     if (searchBtn) {
-        searchBtn.addEventListener("click", () => {
+        searchBtn.addEventListener("click", async () => {
             const keyword = document.getElementById("searchInput").value.trim();
+            
+            // 1. Kiểm tra từ khóa
             if (keyword === "") {
                 alert("Vui lòng nhập từ khóa tìm kiếm!");
                 return;
             }
-            alert(`Đang tìm kiếm tài liệu liên quan đến: ${keyword}`);
+
+            // 2. Lấy token (Vì backend yêu cầu @token_required)
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("Bạn cần đăng nhập để sử dụng tính năng tìm kiếm!");
+                window.location.href = "login.html";
+                return;
+            }
+
+            try {
+                // 3. SỬA URL: Dùng /api/documents/search thay vì /public
+                // 4. SỬA PARAM: Dùng ?q= thay vì ?search=
+                const url = `${API_URL}/api/documents/search?q=${encodeURIComponent(keyword)}`;
+                
+                const response = await fetch(url, { 
+                    method: "GET",
+                    // 5. THÊM HEADERS: Gửi kèm token
+                    headers: {
+                        "Authorization": "Bearer " + token,
+                        "Content-Type": "application/json"
+                    }
+                });
+
+                // Xử lý lỗi 401 (hết hạn token) hoặc 403
+                if (response.status === 401) {
+                    alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+                    window.location.href = "login.html";
+                    return;
+                }
+
+                const data = await response.json();
+                const container = document.getElementById("public-docs-grid"); // Hoặc vùng hiển thị kết quả bạn muốn
+                container.innerHTML = "";
+
+                // Xử lý hiển thị kết quả
+                if (!response.ok || !data.documents || data.documents.length === 0) {
+                    container.innerHTML = `<p>${data.message || 'Không tìm thấy tài liệu nào phù hợp.'}</p>`;
+                    return;
+                }
+
+                // Render danh sách tài liệu tìm được
+                data.documents.forEach(doc => {
+                    const docCard = document.createElement("div");
+                    docCard.className = "doc-card";
+                    docCard.dataset.id = doc.id;
+                    // Xử lý hiển thị tags
+                    const tagsString = (doc.tags && doc.tags.length > 0) ? doc.tags.join(', ') : '<i>Không có thẻ</i>';
+                    
+                    docCard.innerHTML = `
+                        <h3>${doc.filename}</h3>
+                        <p>${doc.description || '<i>Chưa có mô tả</i>'}</p>
+                        <p>Tags: ${tagsString}</p>
+                        <p><small>Người đăng: ${doc.owner_name}</small></p>
+                        <div class="doc-card-actions">
+                            <button class="btn-action btn-favorite ${doc.is_favorited ? 'favorited' : ''}" data-id="${doc.id}">⭐ Bộ nhớ</button>
+                        </div>
+                    `;
+                    container.appendChild(docCard);
+                });
+                
+                // Gán lại sự kiện click cho các card vừa tạo (để xem chi tiết)
+                // Lưu ý: Cần gọi lại logic gán event click viewDocument nếu cần thiết ở đây
+                
+            } catch (err) {
+                console.error("Lỗi tìm kiếm:", err);
+                alert("Lỗi kết nối server khi tìm kiếm!");
+            }
         });
     }
+
 });
 
 
@@ -250,3 +317,75 @@ async function loadHomepageFeed() {
         }
     }
 }
+async function loadPublicDocuments() {
+    const container = document.getElementById("public-docs-grid");
+    container.innerHTML = "<p>Đang tải...</p>";
+
+    try {
+        const response = await fetch(`${API_URL}/api/documents/public`, { method: 'GET' });
+        const data = await response.json();
+
+        if (response.ok) {
+            container.innerHTML = "";
+            if (!data.documents || data.documents.length === 0) {
+                container.innerHTML = "<p>Hiện chưa có tài liệu public nào.</p>";
+                return;
+            }
+
+            data.documents.forEach(doc => {
+                const docCard = document.createElement("div");
+                docCard.className = "doc-card";
+                docCard.dataset.id = doc.id;
+
+                const tagsString = (doc.tags || []).join(', ');
+
+                docCard.innerHTML = `
+                    <h3>${doc.filename}</h3>
+                    <p>${doc.description || '<i>Chưa có mô tả</i>'}</p>
+                    <p>Tags: ${tagsString || '<i>Không có thẻ</i>'}</p>
+                    <div class="doc-card-actions">
+                        <button class="btn-action btn-favorite ${doc.is_favorited ? 'favorited' : ''}" data-id="${doc.id}">⭐ Bộ nhớ</button>
+                    </div>
+                `;
+
+                container.appendChild(docCard);
+            });
+ 
+            container.addEventListener('click', async (e) => {
+                const favBtn = e.target.closest('.btn-favorite');
+                if (favBtn) {
+                    e.stopPropagation(); 
+                    const docId = favBtn.dataset.id;
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        alert("Vui lòng đăng nhập để thêm vào Bộ nhớ của tôi!");
+                        return;
+                    }
+                    try {
+                        const data = await toggleFavorite(docId);
+                        if (data.isFavorited) {
+                            favBtn.classList.add('favorited');
+                        } else {
+                            favBtn.classList.remove('favorited');
+                        }
+                    } catch (err) {
+                        alert("Lỗi: " + err.message);
+                    }
+                    return;
+                }
+
+                const card = e.target.closest('.doc-card');
+                if (card && typeof viewDocument === 'function') {
+                    viewDocument(card);
+                }
+            });
+
+        } else {
+            container.innerHTML = `<p>Lỗi: ${data.message}</p>`;
+        }
+    } catch (err) {
+        console.error(err);
+        container.innerHTML = "<p>Lỗi kết nối máy chủ.</p>";
+    }
+}
+

@@ -22,7 +22,7 @@ from flask_socketio import SocketIO
 import socket as py_socket # Đổi tên để tránh xung đột
 import threading
 import json
-
+from sqlalchemy import or_, func
 
 # ==========================================================
 # 🔧 CẤU HÌNH CƠ BẢN
@@ -337,26 +337,48 @@ def create_document(current_user):
     print(f"[Flask] ✅ Metadata saved for {filename}")
     return jsonify({'message': 'Tạo metadata thành công', 'document_id': doc.id}), 201
 
-
 @app.route('/api/documents', methods=['GET'])
 @token_required
 def list_documents(current_user):
-    fav_ids = {fav.document_id for fav in UserFavorite.query.filter_by(user_id=current_user.id).all()}
-    query = Document.query.filter(
-    ((Document.user_id == current_user.id) | (Document.visibility == 'public')) &
-    (Document.status == 'uploaded')
-    )
+    user_docs_only = request.args.get('user') == 'true'
+
+    if user_docs_only:
+        query = Document.query.filter_by(
+            user_id=current_user.id,
+            status='uploaded'
+        )
+    else:
+        from sqlalchemy import or_
+        query = Document.query.filter(
+            or_(
+                Document.user_id == current_user.id,
+                Document.visibility == 'public'
+            ),
+            Document.status == 'uploaded'
+        )
+
     docs = [{
         'id': d.id,
         'filename': d.filename,
-        'file_path': d.file_path,
         'visibility': d.visibility,
-        'description': d.description,
-        'created_at': d.created_at,
-        'tags': [t.name for t in d.tags]
+        'user_id': d.user_id
     } for d in query.all()]
     return jsonify({'documents': docs}), 200
 
+@app.route('/api/documents/public', methods=['GET'])
+def list_public_documents():
+    docs = Document.query.filter_by(visibility='public', status='uploaded').all()
+    return jsonify({
+        'documents': [
+            {
+                'id': d.id,
+                'filename': d.filename,
+                'description': d.description,
+                'file_path': d.file_path,
+                'tags': [t.name for t in d.tags]
+            } for d in docs
+        ]
+    }), 200
 
 @app.route('/api/documents/<int:doc_id>/download', methods=['GET'])
 @token_required
@@ -679,6 +701,44 @@ def toggle_favorite(current_user, doc_id):
         db.session.add(new_fav)
         db.session.commit()
         return jsonify({'message': 'Đã yêu thích', 'isFavorited': True}), 201
+@app.route('/api/documents/search', methods=['GET'])
+@token_required
+def search_documents(current_user): 
+    keyword = request.args.get('q', '').strip()
+    if not keyword:
+        return jsonify({'message': 'Vui lòng nhập từ khóa tìm kiếm'}), 400
+ 
+    docs_query = Document.query \
+        .outerjoin(document_tags) \
+        .outerjoin(Tag) \
+        .filter(
+            Document.status == 'uploaded',
+            or_(
+                Document.filename.ilike(f'%{keyword}%'),
+                Document.description.ilike(f'%{keyword}%'),
+                Tag.name.ilike(f'%{keyword}%')
+            ), 
+            or_(
+                Document.visibility == 'public',
+                Document.user_id == current_user.id
+            )
+        ).distinct() \
+        .order_by(Document.created_at.desc())
+
+    docs = [{
+        'id': d.id,
+        'filename': d.filename,
+        'description': d.description,
+        'visibility': d.visibility,
+        'user_id': d.user_id,
+        'tags': [t.name for t in d.tags],
+        'owner_name': d.owner.name
+    } for d in docs_query.all()]
+
+    if not docs:
+        return jsonify({'message': 'Không tìm thấy tài liệu nào', 'documents': []}), 200
+
+    return jsonify({'documents': docs}), 200
 # ==========================================================
 # 🏁 MAIN ENTRY 
 # ==========================================================

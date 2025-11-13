@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
     addModalListeners(token);
 });
 
-async function loadUserFiles(token) {
+async function loadUserFiles(token) { 
     const container = document.getElementById("file-list-container");
     const loadingText = document.getElementById("loading-text");
 
