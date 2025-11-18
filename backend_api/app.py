@@ -434,12 +434,14 @@ def permanent_delete_document(current_user, doc_id):
                 os.rmdir(full_dir_path)
             print(f"[Flask] 🗑️ File/Folder deleted: {full_dir_path}")
         except Exception as e:
-            print(f"Lỗi xóa file vật lý: {e}")
- 
+            print(f"Lỗi xóa file vật lý: {e}") 
+    UserFavorite.query.filter_by(document_id=doc.id).delete() 
+    UserDocumentView.query.filter_by(document_id=doc.id).delete() 
+    doc.tags.clear() 
+    db.session.flush()  
     db.session.delete(doc)
     db.session.commit()
     return jsonify({'message': 'Xóa tài liệu vĩnh viễn thành công'}), 200
-
 # ==========================================================
 # 🚀 SOCKET TRIGGER
 # ==========================================================

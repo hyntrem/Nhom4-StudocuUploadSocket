@@ -65,16 +65,51 @@ def safe_read_exact(f, n: int) -> Optional[bytes]:
 # ==============================
 # 🧠 HÀM XỬ LÝ MỖI CLIENT
 # ==============================
+def recv_line(conn: socket.socket, maxlen=65536) -> Optional[bytes]:
+    """Đọc tới newline (\n) — trả về None nếu kết nối đóng hoặc lỗi."""
+    buf = bytearray()
+    while True:
+        try:
+            chunk = conn.recv(1)
+        except socket.timeout:
+            return None
+        except ConnectionResetError:
+            return None
+        if not chunk:
+            return None
+        buf += chunk
+        if buf.endswith(b'\n') or len(buf) >= maxlen:
+            return bytes(buf)
+    # unreachable
+
+def recv_exact(conn: socket.socket, n: int) -> Optional[bytes]:
+    """Đọc chính xác n bytes từ socket (blocking), trả None nếu EOF/timeout/reset."""
+    parts = []
+    remaining = n
+    while remaining > 0:
+        try:
+            chunk = conn.recv( min(65536, remaining) )
+        except socket.timeout:
+            return None
+        except ConnectionResetError:
+            return None
+        if not chunk:
+            return None
+        parts.append(chunk)
+        remaining -= len(chunk)
+    return b"".join(parts)
+
 def handle_client(conn: socket.socket, addr):
     peer = f"{addr[0]}:{addr[1]}"
-    f = conn.makefile("rb")
     print(f"🔌 Client mới: {peer}")
+    # timeout: nếu client im lặng quá lâu sẽ văng ra None từ recv_line/recv_exact
+    conn.settimeout(60)  # điều chỉnh hợp lý: 30-120s tùy usecase
 
     try:
         while True:
-            line = f.readline()
+            line = recv_line(conn)
             if not line:
-                print(f"❎ {peer} đã ngắt kết nối.")
+                print(f"❎ {peer} đã ngắt kết nối (no header).")
                 break
 
             try:
@@ -90,18 +125,17 @@ def handle_client(conn: socket.socket, addr):
                 continue
 
             try:
-                # --- START ---
                 if action == "start":
                     filename = header.get("filename")
                     filesize = int(header.get("filesize", 0))
                     chunk_size = int(header.get("chunk_size", 65536))
-                    metadata = header.get("metadata", {}) 
+                    metadata = header.get("metadata", {})
                     if not filename or filesize <= 0:
                         send_json(conn, {"status": "error", "reason": "invalid_start_params"})
                         continue
-                    
-                    info = state.get(upload_id) 
-                    if not info: 
+
+                    info = state.get(upload_id)
+                    if not info:
                         info = {
                             "filename": filename,
                             "filesize": filesize,
@@ -111,21 +145,14 @@ def handle_client(conn: socket.socket, addr):
                             "metadata": metadata,
                             "created_at": time.time()
                         }
-                    else: 
+                    else:
                         info["peer"] = peer
                         info["status"] = "resumed"
-                    
+
                     state.update(upload_id, info)
                     offset = info.get("offset", 0)
+                    send_json(conn, {"status": "ok", "upload_id": upload_id, "offset": offset, "chunk_size": chunk_size})
 
-                    send_json(conn, {
-                        "status": "ok",
-                        "upload_id": upload_id,
-                        "offset": offset,
-                        "chunk_size": chunk_size
-                    })
-
-                # --- CHUNK ---
                 elif action == "chunk":
                     length = int(header.get("length", 0))
                     offset = int(header.get("offset", 0))
@@ -133,18 +160,17 @@ def handle_client(conn: socket.socket, addr):
                         send_json(conn, {"status": "error", "reason": "invalid_length"})
                         continue
 
-                    data = safe_read_exact(f, length)
+                    data = recv_exact(conn, length)
                     if data is None:
-                        print(f"⚠️ Mất kết nối giữa chừng từ {peer}")
+                        print(f"⚠️ Mất kết nối giữa chừng từ {peer} khi đọc chunk (expected={length}).")
                         break
 
                     info = state.get(upload_id)
-                    filename = info.get("filename")
-                    
-                    if not filename:
+                    if not info:
                         send_json(conn, {"status": "error", "reason": "unknown_upload"})
                         continue
 
+                    filename = info.get("filename")
                     save_dir = os.path.join(STORAGE_DIR, upload_id)
                     os.makedirs(save_dir, exist_ok=True)
                     file_path = os.path.join(save_dir, filename)
@@ -162,22 +188,17 @@ def handle_client(conn: socket.socket, addr):
 
                     if new_offset >= info.get("filesize", 0):
                         print(f"✅ Hoàn thành upload {upload_id}: {filename}")
-
                         full_metadata = info.get("metadata", {})
                         if "filename" not in full_metadata:
-                             full_metadata["filename"] = filename
-                        
+                            full_metadata["filename"] = filename
                         backend.notify_completion(upload_id, file_path, full_metadata)
-                        
                         state.delete(upload_id)
 
-                # --- PAUSE ---
                 elif action == "pause":
                     info = state.get(upload_id); info["status"] = "paused"; state.update(upload_id, info)
                     send_json(conn, {"status": "ok", "upload_id": upload_id, "state": "paused"})
                     print(f"⏸ Upload {upload_id} đã tạm dừng.")
 
-                # --- RESUME ---
                 elif action == "resume":
                     info = state.get(upload_id)
                     info["status"] = "resumed"; info["peer"] = peer
@@ -186,13 +207,11 @@ def handle_client(conn: socket.socket, addr):
                     send_json(conn, {"status": "ok", "upload_id": upload_id, "offset": offset})
                     print(f"▶️ Upload {upload_id} đã tiếp tục từ offset {offset}.")
 
-                # --- STOP ---
                 elif action == "stop":
                     info = state.get(upload_id); info["status"] = "stopped"; state.update(upload_id, info)
                     send_json(conn, {"status": "ok", "upload_id": upload_id, "state": "stopped"})
                     print(f"⛔ Upload {upload_id} đã dừng.")
 
-                # --- QUERY RESUME ---
                 elif action == "query_resume":
                     offset = state.get(upload_id).get("offset", 0)
                     send_json(conn, {"status": "ok", "upload_id": upload_id, "offset": offset})
@@ -203,20 +222,22 @@ def handle_client(conn: socket.socket, addr):
             except Exception as inner:
                 print(f"❌ Lỗi khi xử lý {peer}: {inner}")
                 traceback.print_exc()
-                send_json(conn, {"status": "error", "reason": "internal_server_error"})
+                try:
+                    send_json(conn, {"status": "error", "reason": "internal_server_error"})
+                except Exception:
+                    pass
 
+    except ConnectionResetError as cre:
+        print(f"🔥 ConnectionResetError từ {peer}: {cre}")
     except Exception as ex:
         print(f"🔥 Lỗi client {peer}: {ex}")
         traceback.print_exc()
     finally:
         try:
-            f.close()
-        except Exception: pass
-        try:
             conn.close()
-        except Exception: pass
+        except Exception:
+            pass
         print(f"🧹 Dọn dẹp kết nối cho {peer}")
-
 
 # ==============================
 # 🖥️ MAIN SERVER LOOP
